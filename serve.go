@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/miekg/dns"
-	"github.com/qiniu/log"
+	"gopkg.in/millken/logger.v1"
 )
 
 
@@ -16,10 +16,11 @@ func listenAndServe(ip string) {
 
 			log.Printf("Opening on %s %s", ip, p)
 			if err := server.ListenAndServe(); err != nil {
-				log.Fatalf("geodns: failed to setup %s %s: %s", ip, p, err)
+				logger.Error("geodns: failed to setup %s %s: %s", ip, p, err)
 			}
-			log.Fatalf("mkdns: ListenAndServe unexpectedly returned")
+			logger.Fatal("mkdns: ListenAndServe unexpectedly returned")
 		}(prot)
 	}
 
 }
+

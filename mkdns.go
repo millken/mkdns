@@ -1,25 +1,10 @@
 package main
 
-/*
-   Copyright 2012-2013 Ask Bjørn Hansen
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
 
 import (
 	"expvar"
 	"flag"
-	"github.com/qiniu/log"
+	"gopkg.in/millken/logger.v1"
 	"net"
 	"os"
 	"os/signal"
@@ -75,11 +60,6 @@ func main() {
 
 	if *flagcheckconfig {
 
-		err := configReader(configFileName)
-		if err != nil {
-			log.Println("Errors reading config", err)
-			os.Exit(2)
-		}
 
 		return
 	}
@@ -94,16 +74,15 @@ func main() {
 
 		pprof.StartCPUProfile(prof)
 		defer func() {
-			log.Println("closing file")
+			logger.Info("closing file")
 			prof.Close()
 		}()
 		defer func() {
-			log.Println("stopping profile")
+			logger.Info("stopping profile")
 			pprof.StopCPUProfile()
 		}()
 	}
 
-	go configWatcher(configFileName)
 
 	if *flaginter == "*" {
 		addrs, _ := net.InterfaceAddrs()
@@ -127,11 +106,18 @@ func main() {
 		go listenAndServe(host)
 	}
 
-	terminate := make(chan os.Signal)
-	signal.Notify(terminate, os.Interrupt)
+	sig := make(chan os.Signal)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
-	<-terminate
-	log.Printf("geodns: signal received, stopping")
+forever:
+	for {
+		select {
+		case <-sig:
+		logger.Info("signal received, stopping")
+		break forever
+		}
+	}
+
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
