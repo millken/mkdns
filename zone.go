@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"strconv"
 	"os"
 	"strings"
 	"unicode"
@@ -13,7 +14,8 @@ import (
 type TypeDef int
 
 const (
-	D_A TypeDef = iota
+	D_SOA TypeDef = iota
+	D_A
 	D_AAAA
 	D_CNAME
 	D_NS
@@ -21,6 +23,7 @@ const (
 	P_ALIAS
 	P_VIEW
 	P_WEIGHT
+	P_ERROR
 )
 
 type Soa struct {
@@ -33,30 +36,40 @@ type Soa struct {
 	Minttl  uint32
 }
 
-type Record struct {
+type ORecord struct {
 	Label  string
 	Ttl int
 	Type TypeDef
 	Value string
 }
+type Record struct {
+	Ttl int
+	Value string
+}
 
-type Records []Record
+type Zck struct {
+	L string
+	T TypeDef
+}
+
+type Records map[Zck][]*Record
 
 type Zone struct {
-	Records map[string]Records
+	Records Records
 	Soa *Soa
 }
 
 func NewZone() *Zone {
 	zone := new(Zone)
-	zone.Name = name
 	zone.Soa = new(Soa)
+	zone.Records = make(map[Zck][]*Record)
 	return zone
 }
 
 func (z *Zone) LoadFile(file string) (err error) {
 	//var a, b []byte
-	line := 1
+	records	:= make(Records)
+	line := 0
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -75,15 +88,33 @@ func (z *Zone) LoadFile(file string) (err error) {
 	a := ""
 	ahead := ""
 	b := 1.0
-	for scanner.Scan() {
-		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())
-		c := scanner.Text()
 
+	for scanner.Scan() {
+		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())		
+		c := scanner.Text()
 		if c == "\n" && int(b) == 1 {
 			line = line + 1
-			z.parseLine(line, a)
-			logger.Debug("a=%s", a)
+			text := strings.TrimSpace(a)
+
+			logger.Trace("(%s:%d)=%s", file, line, a)
 			a = ""
+			if len(text) == 0 || text[0:1] == ";" {
+				continue
+			}
+			r, rerr := z.parseLine(line, text)
+			if rerr != nil {
+				logger.Warn("parse zone %s:%d error: %q", file, line, rerr)
+				continue
+			}
+			zck := Zck{
+				L: r.Label,
+				T: r.Type,
+			}
+			records[zck] = append(records[zck], &Record{
+				Ttl: r.Ttl,
+				Value: r.Value,
+			})
+
 		}
 
 		if c == "\"" && ahead != "\\" {
@@ -91,11 +122,15 @@ func (z *Zone) LoadFile(file string) (err error) {
 		}
 
 		if unicode.IsSpace([]rune(c)[0]) {
+			if c == " " && ahead == " " {
+				c = ""
+			}else
 			//hack "
 			if int(b) == 0 {
 				c = "\t"
+			}else{
+				c = " "
 			}
-			c = " "
 		}
 		ahead = c
 		a = a + c
@@ -105,26 +140,76 @@ func (z *Zone) LoadFile(file string) (err error) {
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("Error reading zone file: %s, line : %d", scanner.Err(), line)
 	}
+	z.Records = records
+	logger.Debug("zone = %v", z)
 	return nil
 }
 
-func (z *Zone) parseLine(line int, text string) (err error) {
-	logger.Trace("line [%d] %s", line, text)
-	text = strings.TrimSpace(text)
-	if len(text) == 0 || text[0:1] == ";" {
-		return nil
-	}
+func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
+
+
 	textlist := strings.Split(text, " ")
 	if len(textlist) < 4 {
-		return errors.New("line formart error")
+		return nil, errors.New("line formart error")
 	}
-	if err = z.parseName(textlist[0]); err != nil {
-		return fmt.Errorf("parsename error: %q", err)
-	} 
+	label, err := z.parseLabel(textlist[0])
+	if err != nil {
+		return nil, fmt.Errorf("parselable error: %q", err)
+	}
+
+	ttl, err := z.parseTtl(textlist[1])
+	if err != nil {
+		return nil, fmt.Errorf("parsettl error: %q", err)
+	}
+
+	typedef, err := z.parseType(textlist[2])
+	if err != nil {
+		return nil, fmt.Errorf("parsetype error: %q", err)
+	}
+
+	value, err := z.parseValue(textlist[3])
+	if err != nil {
+		return nil, fmt.Errorf("parsevalue error: %q", err)
+	}
+	record = &ORecord{
+		Label: label,
+		Ttl: ttl,
+		Type: typedef,
+		Value: value,
+	}
+
 	logger.Debug("%v", textlist)
-	return nil
+	return record, nil
 }
 
-func (z *Zone) parseName(name string) error {
-	
+func (z *Zone) parseLabel(label string) (ret string, err error) {
+	return label, nil
+}
+
+func (z *Zone) parseTtl(ttl string) (ret int, err error) {
+	newttl, err := strconv.Atoi(ttl)
+	if err != nil {
+		return 0, err 
+	}
+	return newttl, nil
+}
+
+func (z *Zone) parseType(typedef string) (ret TypeDef, err error) {
+	switch typedef {
+	case "A": ret = D_A
+	case "AAAA": ret = D_AAAA
+	case "CNAME": ret = D_CNAME
+	case "NS": ret = D_NS
+	case "TXT": ret = D_TXT
+	case "SOA": ret = D_SOA
+	default: ret = P_ERROR
+	}
+	if ret == P_ERROR {
+		return ret, fmt.Errorf("unknown type: %s", typedef)
+	}
+	return ret, nil
+}
+
+func (z *Zone) parseValue(value string) (ret string, err error) {
+	return value, nil
 }

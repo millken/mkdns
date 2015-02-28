@@ -9,7 +9,7 @@ var (
 )
 
 func TestLoad(t *testing.T) {
-	z := NewZone("test")
+	z := NewZone()
 	if err = z.LoadFile("zones/test1.com.z"); err != nil {
 		t.Fatal("load file failed:", err)
 	}
