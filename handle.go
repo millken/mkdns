@@ -21,6 +21,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	domain := strings.ToLower(q.Name)
 	zone := FindZoneByDomain(domain)
 	if zone == nil {
+		m.SetRcode(req, dns.RcodeNameError)
 		return
 	}
 

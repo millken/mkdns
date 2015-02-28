@@ -295,20 +295,46 @@ func (z *Zone) parseValue(value string) (ret string, err error) {
 }
 
 func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
+	var typedef TypeDef
+	var answer dns.RR
+	var slab string
 	q := req.Question[0]
 	m = new(dns.Msg)
 	m.SetReply(req)	
+	typedef = P_ERROR
+	rrtype := q.Qtype
 	switch q.Qtype {
-		case dns.TypeA, dns.TypeAAAA:
+		case dns.TypeA:
+			typedef = D_A
+		case dns.TypeAAAA:
+			typedef = D_AAAA
+		
+	}
+	if len(q.Name) == len(z.Name) + 1 {
+		slab = "@" 
+	}else {
+		tl := len(q.Name) - len(z.Name) - 2
+		slab = strings.ToLower(q.Name[0:tl])
+	}
+
+	logger.Debug("z.Name=%s, q.Name=%s, slab=%s", z.Name, q.Name, slab)
+	zck := Zck{L: slab, T: typedef}
+	if r, ok := z.Records[zck]; ok {
+		for _, re := range r {
 			rr_header := dns.RR_Header{
 				Name: q.Name,
-				Rrtype: dns.TypeA,
+				Rrtype: rrtype,
 				Class: dns.ClassINET,
-				Ttl: 10,
+				Ttl: uint32(re.Ttl),
 			}
-		ip := net.ParseIP("1.1.1.1")
-		a := &dns.A{rr_header, ip}
-		m.Answer = append(m.Answer, a)
+			switch rrtype {
+			case dns.TypeA:
+				ip := net.ParseIP(strings.TrimSpace(re.Value))
+				answer = &dns.A{rr_header, ip}
+			}
+			
+			m.Answer = append(m.Answer, answer)			
+		}
 	}
-	return
+	return 
 }
