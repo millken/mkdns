@@ -23,7 +23,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	defer func() {
 		logger.Debug("(name)=%s, (q)=%v\"%s\"", name, q, q.String())
 		if err := w.WriteMsg(m); err != nil {
-			logger.Error("failure to return reply %q", err)
+			logger.Error("failure to return reply %s", err.Error())
 		}
 		return
 	}()
