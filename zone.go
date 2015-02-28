@@ -103,10 +103,12 @@ func (z *Zone) LoadFile(file string) (err error) {
 	a := ""
 	ahead := ""
 	b := 1.0
+	aheadspace := false
 
 	for scanner.Scan() {
 		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())
 		c := scanner.Text()
+		logger.Debug("c=%s, unicode.IsSpace([]rune(c)[0])=%v", c, unicode.IsSpace([]rune(c)[0]))
 		if c == "\n" && int(b) == 1 {
 			line = line + 1
 			text := strings.TrimSpace(a)
@@ -144,7 +146,7 @@ func (z *Zone) LoadFile(file string) (err error) {
 		}
 
 		if unicode.IsSpace([]rune(c)[0]) {
-			if c == " " && ahead == " " {
+			if c == " " && (ahead == " " || aheadspace == true) {
 				c = ""
 			} else
 			//hack "
@@ -153,6 +155,9 @@ func (z *Zone) LoadFile(file string) (err error) {
 			} else {
 				c = " "
 			}
+			aheadspace = true
+		}else{
+			aheadspace = false
 		}
 		ahead = c
 		a = a + c
@@ -221,6 +226,7 @@ func (z *Zone) parseSoa(s string) (soa *Soa, err error) {
 
 func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 
+	logger.Debug("line[%d] = [%s]", line, text)
 	textlist := strings.SplitN(text, " ", 4)
 	if len(textlist) < 4 {
 		return nil, errors.New("line formart error")
@@ -268,7 +274,7 @@ func (z *Zone) parseTtl(ttl string) (ret int, err error) {
 }
 
 func (z *Zone) parseType(typedef string) (ret TypeDef, err error) {
-	switch typedef {
+	switch strings.ToUpper(typedef) {
 	case "A":
 		ret = D_A
 	case "AAAA":
@@ -308,7 +314,10 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			typedef = D_A
 		case dns.TypeAAAA:
 			typedef = D_AAAA
-		
+		case dns.TypeCNAME:
+			typedef = D_CNAME
+		case dns.TypeNS:
+			typedef = D_NS
 	}
 	if len(q.Name) == len(z.Name) + 1 {
 		slab = "@" 
@@ -331,10 +340,19 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			case dns.TypeA:
 				ip := net.ParseIP(strings.TrimSpace(re.Value))
 				answer = &dns.A{rr_header, ip}
+			case dns.TypeAAAA:
+				ip := net.ParseIP(strings.TrimSpace(re.Value))
+				answer = &dns.AAAA{rr_header, ip}				
+			case dns.TypeCNAME:
+				answer = &dns.CNAME{rr_header, strings.TrimSpace(re.Value)}
+			case dns.TypeNS:
+				answer = &dns.NS{rr_header, strings.TrimSpace(re.Value)}
 			}
 			
 			m.Answer = append(m.Answer, answer)			
 		}
+	}else{
+		logger.Debug("not found =%q", zck)
 	}
 	return 
 }

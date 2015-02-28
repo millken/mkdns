@@ -47,8 +47,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 		}
 	}
 	switch q.Qtype {
-	case dns.TypeNS:
-	case dns.TypeA, dns.TypeAAAA:
+	case dns.TypeNS, dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
 		m , _ = zone.FindRecord(req)
 		return
 	default:

@@ -54,7 +54,6 @@ clean:
 	rm -f ./mkdns
 	rm -f ./bin/*
 	rm -f bindata.go
-	make assets
 
 docker:
 	docker build -t mkdns .
