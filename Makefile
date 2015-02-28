@@ -32,6 +32,7 @@ dev: dev-assets
 	@echo "You can now execute ./mkdns"
 
 build: 
+	go fmt ./...
 	godep go build
 	@echo "You can now execute ./mkdns"
 

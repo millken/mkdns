@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-func getInterfaces() []string {
+func getInterfaces(bindports, bindport string) []string {
 
 	var inter []string
 	uniq := make(map[string]bool)
 
-	for _, host := range strings.Split(*flaginter, ",") {
+	for _, host := range strings.Split(bindports, ",") {
 		ip, port, err := net.SplitHostPort(host)
 		if err != nil {
 			switch {
@@ -32,7 +32,7 @@ func getInterfaces() []string {
 			}
 		}
 		if len(port) == 0 {
-			port = *flagport
+			port = bindport
 		}
 		host = net.JoinHostPort(ip, port)
 		if uniq[host] {

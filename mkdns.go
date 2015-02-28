@@ -1,20 +1,20 @@
 package main
 
-
 import (
 	"expvar"
 	"flag"
-	"gopkg.in/millken/logger.v1"
+	//"gopkg.in/millken/logger.v1"
+	//"log"
 	"net"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime/pprof"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
-var VERSION string = "2.2.6"
+var VERSION string = "1.0.0"
 var gitVersion string
 var serverId string
 var serverIP string
@@ -22,67 +22,24 @@ var serverGroups []string
 
 var timeStarted = time.Now()
 var qCounter = expvar.NewInt("qCounter")
-
-var (
-	flagconfig      = flag.String("config", "./", "directory of zone files")
-	flagcheckconfig = flag.Bool("checkconfig", false, "check configuration and exit")
-	flagidentifier  = flag.String("identifier", "", "identifier (hostname, pop name or similar)")
-	flaginter       = flag.String("interface", "*", "set the listener address")
-	flagport        = flag.String("port", "53", "default port number")
-	flaghttp        = flag.String("http", ":8053", "http listen address (:8053)")
-	flaglog         = flag.Bool("log", false, "be more verbose")
-
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	memprofile = flag.String("memprofile", "", "write memory profile to this file")
-)
+var logger = NewLogger(os.Stderr, "", FINEST)
 
 func init() {
-	if len(gitVersion) > 0 {
-		VERSION = VERSION + "/" + gitVersion
-	}
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	log.SetOutputLevel(log.Ldebug)
 }
 
 func main() {
+	var (
+		//flagconfig = flag.String("config", "./", "directory of zone files")
+		flaginter = flag.String("interface", "*", "set the listener address")
+		flagport  = flag.String("port", "53", "default port number")
+		//flaghttp   = flag.String("http", ":8053", "http listen address (:8053)")
+		//flaglog    = flag.Bool("log", false, "be more verbose")
+	)
 	flag.Parse()
 
-	if len(*flagidentifier) > 0 {
-		ids := strings.Split(*flagidentifier, ",")
-		serverId = ids[0]
-		if len(ids) > 1 {
-			serverGroups = ids[1:]
-		}
-	}
-
-	configFileName := filepath.Clean(*flagconfig + "/mkdns.conf")
-	log.Debugf("config file '%s'\n", configFileName)
-
-	if *flagcheckconfig {
-
-
-		return
-	}
-
-	log.Printf("Starting mkdns %s\n", VERSION)
-
-	if *cpuprofile != "" {
-		prof, err := os.Create(*cpuprofile)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		pprof.StartCPUProfile(prof)
-		defer func() {
-			logger.Info("closing file")
-			prof.Close()
-		}()
-		defer func() {
-			logger.Info("stopping profile")
-			pprof.StopCPUProfile()
-		}()
-	}
-
+	logger.Info("Starting mkdns %s", VERSION)
 
 	if *flaginter == "*" {
 		addrs, _ := net.InterfaceAddrs()
@@ -100,33 +57,32 @@ func main() {
 		*flaginter = strings.Join(ips, ",")
 	}
 
-	inter := getInterfaces()
+	inter := getInterfaces(*flaginter, *flagport)
 
 	for _, host := range inter {
 		go listenAndServe(host)
 	}
 
-	sig := make(chan os.Signal)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGTERM)
 
-forever:
-	for {
-		select {
-		case <-sig:
-		logger.Info("signal received, stopping")
-		break forever
-		}
-	}
+	/*
+		go func(c chan os.Signal) {
+			// Wait for a signal:
+			sig := <-c
+			logger.Info("Caught signal '%s': shutting down.", sig)
+			// Stop listening:
 
+			// Delete the unix socket, if applicable:
 
-	if *memprofile != "" {
-		f, err := os.Create(*memprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.WriteHeapProfile(f)
-		f.Close()
-	}
+			// And we're done:
+			os.Exit(0)
+		}(sigc)
+		listen()
+	*/
+	<-sigc
+	//log.Printf("Bye bye :( %s", sigc)
+	logger.Info("god")
 
 	//os.Exit(0)
 

@@ -1,13 +1,12 @@
 package main
 
 import (
+	//"github.com/miekg/dns"
 	"time"
-	"github.com/miekg/dns"
-
 )
 
 type Server struct {
-	addr string
+	addr     string
 	rTimeout time.Duration
 	wTimeout time.Duration
 }
