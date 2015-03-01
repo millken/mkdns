@@ -1,11 +1,12 @@
 package main
 
 import (
-	"log"
+	//"logger"
 	"net"
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -30,7 +31,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	} else {
 		zone_name = zone.Name
 	}
-	log.Printf("[zone %s] incoming %s %s %d from %s\n", zone_name, req.Question[0].Name,
+	logger.Debug("[zone %s] incoming %s %s %d from %s", zone_name, req.Question[0].Name,
 		dns.TypeToString[q.Qtype], req.MsgHdr.Id, w.RemoteAddr())
 
 	if zone == nil {
@@ -55,7 +56,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 				switch e := o.(type) {
 				case *dns.EDNS0_NSID:
 				case *dns.EDNS0_SUBNET:
-					log.Println("Got edns", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
+					logger.Debug("Got edns", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
 					if e.Address != nil {
 						//edns = e
 						zone.Options.EdnsAddr = e.Address
@@ -105,7 +106,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	}
 	m.Authoritative = true
 
-	//logger.Debug("%s", m)
+	//loggerger.Debug("%s", m)
 
 	w.WriteMsg(m)
 	return

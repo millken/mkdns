@@ -8,6 +8,7 @@ import (
 	//"reflect"
 
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 )
 
 type RecordAPlugin struct {
@@ -27,7 +28,7 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 }
 
 func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	//log.Printf("conf : %+v", conf)
+	logger.Debug("conf : %+v", conf)
 	var records []interface{}
 	var ok bool
 	this.Conf = conf

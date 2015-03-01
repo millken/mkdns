@@ -2,10 +2,10 @@ package plugins
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 )
 
 type Plugin interface {
@@ -18,13 +18,13 @@ var plugins_list = make(map[uint16]func() interface{})
 
 func RegisterPlugin(name string, rType uint16, plugin func() interface{}) {
 	if plugin == nil {
-		log.Fatalln("plugin: Register plugin is nil")
+		logger.Error("plugin: Register plugin is nil")
 	}
 
 	if _, ok := plugins_list[rType]; ok {
-		log.Fatalln("plugin: Register called twice for plugin " + name)
+		logger.Error("plugin: Register called twice for plugin " + name)
 	}
-	log.Println("RegisterPlugin: ", name)
+	//logger.Trace("RegisterPlugin: %s", name)
 
 	plugins_type[name] = rType
 	plugins_list[rType] = plugin

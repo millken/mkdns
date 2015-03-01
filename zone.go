@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 	"github.com/millken/mkdns/plugins"
 	"github.com/ugorji/go/codec"
 )

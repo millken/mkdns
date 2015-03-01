@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"log"
 	"net"
 
 	"github.com/miekg/dns"
@@ -26,7 +25,6 @@ func (this *RecordNSPlugin) Filter(conf map[string]interface{}) (answer []dns.RR
 
 func (this *RecordNSPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
 	for _, v := range records {
-		log.Printf("ns=%s", v.(string))
 		answer = append(answer, &dns.NS{this.RRheader, dns.Fqdn(v.(string))})
 	}
 	return

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 )
 
 type Vzones map[string]string
