@@ -3,7 +3,9 @@
 listen = ["127.0.0.1:53", "192.168.3.200:54"]
 version = "mkdns"
 read_timeout = 3
+zones = "mkdns.zones"
 
 [Logging]
 file = "/var/log/mkdns.logd"
 level = "debug"
+

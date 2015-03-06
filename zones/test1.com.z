@@ -1,0 +1,10 @@
+@	3600	SOA      ns1.test1.com. dns-admin.test1.com.  305419896 1193046 624485 4913 38930
+;zhushi
+
+@  600 TXT "
+a
+b
+" d"
+FFFFFF"
+ @	600	A	15.47.46.23
+www  600	A	15.47.46.23 

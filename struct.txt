@@ -1,0 +1,6 @@
+zone struct
+
+label   -----   ttl   -----   type   -----   value   -----     [!dynamic attribute...]
+
+@  300  A  1.1.1.1  #normal record
+@  300  A  1.1.1.2  !weight:3  !view:as-23
