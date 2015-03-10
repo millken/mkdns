@@ -18,10 +18,14 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 		m.SetEdns0(4096, e.Do())
 	}
 	q := req.Question[0]
-	name := strings.ToLower(q.Name)
+	domain := strings.ToLower(q.Name)
+	zone := FindZoneByDomain(domain)
+	if zone == nil {
+		return
+	}
 
 	defer func() {
-		logger.Debug("(name)=%s, (q)=%v\"%s\"", name, q, q.String())
+		logger.Debug("(domain)=%s, (q)=%v\"%s\"", domain, q, q.String())
 		if err := w.WriteMsg(m); err != nil {
 			logger.Error("failure to return reply %s", err.Error())
 		}
@@ -29,7 +33,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	}()
 	if q.Qclass == dns.ClassCHAOS {
 		if q.Qtype == dns.TypeTXT {
-			switch name {
+			switch domain {
 			case "bind.version":
 				fallthrough
 			case "id.server.":

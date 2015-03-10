@@ -17,6 +17,7 @@ type server struct {
 }
 
 func NewServer(config *Config) *server {
+
 	return &server{
 		config: config,
 		//handler: NewHandler(),

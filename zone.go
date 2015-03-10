@@ -2,13 +2,15 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"math"
-	"strconv"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
-	"errors"
+
+	"github.com/miekg/dns"
 )
 
 type TypeDef int
@@ -26,6 +28,17 @@ const (
 	P_ERROR
 )
 
+var (
+	typeDefStrings = [...]string{"SOA", "A", "AAAA", "CNAME", "NS", "TXT", "!ALIAS", "!VIEW", "!WEIGHT", "!ERROR"}
+)
+
+func (t TypeDef) String() string {
+	if t < 0 || int(t) > len(typeDefStrings) {
+		return "UNKNOWN"
+	}
+	return typeDefStrings[int(t)]
+}
+
 type Soa struct {
 	Mname   string
 	Nname   string
@@ -37,13 +50,13 @@ type Soa struct {
 }
 
 type ORecord struct {
-	Label  string
-	Ttl int
-	Type TypeDef
+	Label string
+	Ttl   int
+	Type  TypeDef
 	Value string
 }
 type Record struct {
-	Ttl int
+	Ttl   int
 	Value string
 }
 
@@ -56,7 +69,7 @@ type Records map[Zck][]*Record
 
 type Zone struct {
 	Records Records
-	Soa *Soa
+	Soa     *Soa
 }
 
 func NewZone() *Zone {
@@ -68,7 +81,7 @@ func NewZone() *Zone {
 
 func (z *Zone) LoadFile(file string) (err error) {
 	//var a, b []byte
-	records	:= make(Records)
+	records := make(Records)
 	line := 0
 	defer func() {
 		if e := recover(); e != nil {
@@ -79,7 +92,7 @@ func (z *Zone) LoadFile(file string) (err error) {
 
 	inputFile, err := os.Open(file)
 	if err != nil {
-		return fmt.Errorf("Error opening zone file: %s", err)
+		return fmt.Errorf("error opening zone file: %s", err)
 	}
 	defer inputFile.Close()
 
@@ -90,7 +103,7 @@ func (z *Zone) LoadFile(file string) (err error) {
 	b := 1.0
 
 	for scanner.Scan() {
-		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())		
+		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())
 		c := scanner.Text()
 		if c == "\n" && int(b) == 1 {
 			line = line + 1
@@ -106,12 +119,19 @@ func (z *Zone) LoadFile(file string) (err error) {
 				logger.Warn("parse zone %s:%d error: %q", file, line, rerr)
 				continue
 			}
+			if r.Type == D_SOA {
+				z.Soa, err = z.parseSoa(strings.TrimSpace(r.Value))
+				if err != nil {
+					return fmt.Errorf("parse soa %s:%d error: %q", file, line, err)
+				}
+				continue
+			}
 			zck := Zck{
 				L: r.Label,
 				T: r.Type,
 			}
 			records[zck] = append(records[zck], &Record{
-				Ttl: r.Ttl,
+				Ttl:   r.Ttl,
 				Value: r.Value,
 			})
 
@@ -124,11 +144,11 @@ func (z *Zone) LoadFile(file string) (err error) {
 		if unicode.IsSpace([]rune(c)[0]) {
 			if c == " " && ahead == " " {
 				c = ""
-			}else
+			} else
 			//hack "
 			if int(b) == 0 {
 				c = "\t"
-			}else{
+			} else {
 				c = " "
 			}
 		}
@@ -141,14 +161,65 @@ func (z *Zone) LoadFile(file string) (err error) {
 		return fmt.Errorf("Error reading zone file: %s, line : %d", scanner.Err(), line)
 	}
 	z.Records = records
-	logger.Debug("zone = %v", z)
+	logger.Debug("zone(%s)\n %s", file, z)
 	return nil
+}
+
+func (z *Zone) String() string {
+	ret := fmt.Sprintf("SOA { %s %s\n %d %d %d %d %d\n }", z.Soa.Mname, z.Soa.Nname, z.Soa.Serial, z.Soa.Refresh, z.Soa.Retry, z.Soa.Expire, z.Soa.Minttl)
+	for zck, r := range z.Records {
+		for _, re := range r {
+			ret = fmt.Sprintf("%s\n (label)=%s, (type)=%s, (ttl)=%d, (value)=%s", ret, zck.L, zck.T, re.Ttl, re.Value)
+		}
+	}
+	return ret
+}
+
+func (z *Zone) parseSoa(s string) (soa *Soa, err error) {
+
+	slist := strings.SplitN(s, " ", 7)
+	if len(slist) < 7 {
+		return nil, errors.New("line formart error")
+	}
+	//soa = new(Soa)
+	mname := slist[0]
+	nname := slist[1]
+	serial, err := strconv.Atoi(slist[2])
+	if err != nil {
+		return nil, err
+	}
+	refresh, err := strconv.Atoi(slist[3])
+	if err != nil {
+		return nil, err
+	}
+	retry, err := strconv.Atoi(slist[3])
+	if err != nil {
+		return nil, err
+	}
+	expire, err := strconv.Atoi(slist[3])
+	if err != nil {
+		return nil, err
+	}
+	minttl, err := strconv.Atoi(slist[3])
+	if err != nil {
+		return nil, err
+	}
+	soa = &Soa{
+		Mname:   mname,
+		Nname:   nname,
+		Serial:  uint32(serial),
+		Refresh: uint32(refresh),
+		Retry:   uint32(retry),
+		Expire:  uint32(expire),
+		Minttl:  uint32(minttl),
+	}
+
+	return
 }
 
 func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 
-
-	textlist := strings.Split(text, " ")
+	textlist := strings.SplitN(text, " ", 4)
 	if len(textlist) < 4 {
 		return nil, errors.New("line formart error")
 	}
@@ -173,8 +244,8 @@ func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 	}
 	record = &ORecord{
 		Label: label,
-		Ttl: ttl,
-		Type: typedef,
+		Ttl:   ttl,
+		Type:  typedef,
 		Value: value,
 	}
 
@@ -189,20 +260,27 @@ func (z *Zone) parseLabel(label string) (ret string, err error) {
 func (z *Zone) parseTtl(ttl string) (ret int, err error) {
 	newttl, err := strconv.Atoi(ttl)
 	if err != nil {
-		return 0, err 
+		return 0, err
 	}
 	return newttl, nil
 }
 
 func (z *Zone) parseType(typedef string) (ret TypeDef, err error) {
 	switch typedef {
-	case "A": ret = D_A
-	case "AAAA": ret = D_AAAA
-	case "CNAME": ret = D_CNAME
-	case "NS": ret = D_NS
-	case "TXT": ret = D_TXT
-	case "SOA": ret = D_SOA
-	default: ret = P_ERROR
+	case "A":
+		ret = D_A
+	case "AAAA":
+		ret = D_AAAA
+	case "CNAME":
+		ret = D_CNAME
+	case "NS":
+		ret = D_NS
+	case "TXT":
+		ret = D_TXT
+	case "SOA":
+		ret = D_SOA
+	default:
+		ret = P_ERROR
 	}
 	if ret == P_ERROR {
 		return ret, fmt.Errorf("unknown type: %s", typedef)
@@ -212,4 +290,7 @@ func (z *Zone) parseType(typedef string) (ret TypeDef, err error) {
 
 func (z *Zone) parseValue(value string) (ret string, err error) {
 	return value, nil
+}
+
+func (z *Zone) FindRecord(label string, typedef TypeDef) (records []dns.RR, extra []dns.RR, err error) {
 }

@@ -34,6 +34,9 @@ func main() {
 	}
 
 	logger.Debug("config= %v", config)
+
+	LoadZones(config.Options.Zones)
+
 	server := NewServer(config)
 	server.Run()
 
