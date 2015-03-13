@@ -9,6 +9,7 @@ usage:
 	@echo "make setup           : Install all necessary dependencies"
 	@echo "make dev             : Generate development build"
 	@echo "make test            : Run tests"
+	@echo "make format          : formater code"	
 	@echo "make build           : Generate production build for current OS"
 	@echo "make bootstrap       : Install cross-compilation toolchain"
 	@echo "make release         : Generate binaries for all supported OSes"
@@ -31,8 +32,9 @@ dev: dev-assets
 	godep go build
 	@echo "You can now execute ./mkdns"
 
-build: 
+format:	
 	go fmt ./...
+build: 
 	godep go build
 	@echo "You can now execute ./mkdns"
 

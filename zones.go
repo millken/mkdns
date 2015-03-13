@@ -46,6 +46,7 @@ func LoadZones(zfile string) {
 			logger.Error(err)
 			continue
 		}
+		zone.Name = alist[0]
 		temp[alist[0]] = zone
 
 		logger.Debug("%s=%s", alist[0], alist[1])

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"net"
 	"strconv"
 	"strings"
 	"unicode"
@@ -68,6 +69,7 @@ type Zck struct {
 type Records map[Zck][]*Record
 
 type Zone struct {
+	Name string
 	Records Records
 	Soa     *Soa
 }
@@ -292,5 +294,21 @@ func (z *Zone) parseValue(value string) (ret string, err error) {
 	return value, nil
 }
 
-func (z *Zone) FindRecord(label string, typedef TypeDef) (records []dns.RR, extra []dns.RR, err error) {
+func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
+	q := req.Question[0]
+	m = new(dns.Msg)
+	m.SetReply(req)	
+	switch q.Qtype {
+		case dns.TypeA, dns.TypeAAAA:
+			rr_header := dns.RR_Header{
+				Name: q.Name,
+				Rrtype: dns.TypeA,
+				Class: dns.ClassINET,
+				Ttl: 10,
+			}
+		ip := net.ParseIP("1.1.1.1")
+		a := &dns.A{rr_header, ip}
+		m.Answer = append(m.Answer, a)
+	}
+	return
 }
