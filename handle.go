@@ -22,6 +22,7 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	zone := FindZoneByDomain(domain)
 	if zone == nil {
 		m.SetRcode(req, dns.RcodeNameError)
+		w.WriteMsg(m)
 		return
 	}
 
@@ -46,16 +47,10 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 
 		}
 	}
-	switch q.Qtype {
-	case dns.TypeNS, dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
-		m , _ = zone.FindRecord(req)
-		return
-	default:
-		fallthrough
-	case dns.TypeSRV, dns.TypeANY:
+	m, err := zone.FindRecord(req)
+	if err != nil {
+		logger.Error("zone error : %s", err)
 	}
-
-	m.SetRcode(req, dns.RcodeNameError)
 	w.WriteMsg(m)
 	return
 }
