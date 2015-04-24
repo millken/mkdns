@@ -3,12 +3,14 @@ package plugins
 import (
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/miekg/dns"
 )
 
 type Plugin interface {
-	Filter(rr_header dns.RR_Header, conf map[string]interface{}) ([]dns.RR, error)
+	New(edns, remote net.IP, rr_header dns.RR_Header)
+	Filter(conf map[string]interface{}) ([]dns.RR, error)
 }
 
 var plugins_type = make(map[string]uint16)
@@ -36,12 +38,22 @@ func DnsType(recordType string) (dType uint16, err error) {
 	return dType, nil
 }
 
-func Filter(recordType uint16, rr_header dns.RR_Header, config map[string]interface{}) (resp []dns.RR, err error) {
+func Get(recordType uint16) interface{} {
 	if plugin, ok := plugins_list[recordType]; ok {
 
 		plug := plugin()
 
-		return plug.(Plugin).Filter(rr_header, config)
+		return plug.(Plugin)
+	}
+	return nil
+}
+
+func Filter(recordType uint16, config map[string]interface{}) (resp []dns.RR, err error) {
+	if plugin, ok := plugins_list[recordType]; ok {
+
+		plug := plugin()
+
+		return plug.(Plugin).Filter(config)
 	}
 	return nil, fmt.Errorf("plugin: %d not register", recordType)
 }

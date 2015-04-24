@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"os"
 	"reflect"
 	"strconv"
@@ -44,16 +45,24 @@ type Zck struct {
 
 type Records map[Zck]*Record
 
+type ZoneOptions struct {
+	EdnsAddr   net.IP
+	RemoteAddr net.IP
+}
+
 type Zone struct {
 	Name    string
 	Records Records
 	Soa     *Soa
+	Options ZoneOptions
 }
 
 func NewZone() *Zone {
 	zone := new(Zone)
 	zone.Soa = new(Soa)
 	zone.Records = make(map[Zck]*Record)
+	zone.Options.EdnsAddr = nil
+	zone.Options.RemoteAddr = nil
 	return zone
 }
 
@@ -264,7 +273,7 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 		slab = strings.ToLower(q.Name[0:tl])
 	}
 
-	logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d", z.Name, q.Name, slab, q.Qtype)
+	logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
 	zck := Zck{L: slab, T: q.Qtype}
 	if r, ok := z.Records[zck]; ok {
 
@@ -274,7 +283,13 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			Class:  dns.ClassINET,
 			Ttl:    uint32(r.Ttl),
 		}
-		m.Answer, err = plugins.Filter(q.Qtype, rr_header, r.Value)
+		plugin := plugins.Get(q.Qtype).(plugins.Plugin)
+		if plugin == nil {
+			err = fmt.Errorf("plugin: %d not register", q.Qtype)
+			return
+		}
+		plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
+		m.Answer, err = plugin.Filter(r.Value)
 		/*
 				switch rrtype {
 				case dns.TypeA:

@@ -9,10 +9,19 @@ import (
 	"github.com/miekg/dns"
 )
 
-type RecordAPlugin bool
+type RecordAPlugin struct {
+	EdnsAddr   net.IP
+	RemoteAddr net.IP
+	RRheader   dns.RR_Header
+}
 
-func (this *RecordAPlugin) Filter(rr_header dns.RR_Header, conf map[string]interface{}) (answer []dns.RR, err error) {
-	//log.Printf("conf : %+v, %T", conf, conf["value"])
+func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
+	this.EdnsAddr = edns
+	this.RemoteAddr = remote
+	this.RRheader = rr_header
+}
+func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
+	log.Printf("conf : %+v, %T", conf, conf["value"])
 	if _, ok := conf["value"]; !ok {
 		return
 	}
@@ -21,7 +30,7 @@ func (this *RecordAPlugin) Filter(rr_header dns.RR_Header, conf map[string]inter
 		if ip == nil {
 			continue
 		}
-		answer = append(answer, &dns.A{rr_header, ip})
+		answer = append(answer, &dns.A{this.RRheader, ip})
 	}
 	return answer, nil
 }
