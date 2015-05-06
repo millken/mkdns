@@ -13,11 +13,13 @@ import (
  *
  type & 1  view
  type & 2  weight
+ type & 4  geo
 */
 
 const (
 	VIEW   = 1
 	WEIGHT = 2
+	GEO    = 4
 )
 
 var upChooseRecord = -1
@@ -48,6 +50,9 @@ func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR,
 	}
 	if record_type&WEIGHT == WEIGHT {
 		return this.WeightRecord()
+	}
+	if record_type&GEO == GEO {
+		return this.GeoRecord()
 	}
 	return
 }
@@ -87,6 +92,36 @@ func (this *RecordAPlugin) WeightRecord() (answer []dns.RR, err error) {
 
 func (this *RecordAPlugin) ViewRecord() (answer []dns.RR, err error) {
 	return
+}
+
+func (this *RecordAPlugin) GeoRecord() (answer []dns.RR, err error) {
+	var _country, _continent string
+	var answer_records []interface{}
+	country, continent, netmask := geoIP.GetCountry(this.EdnsAddr)
+	log.Printf("geoip= %s, country= %s, continent=%s, netmask=%d", this.EdnsAddr, country, continent, netmask)
+	records := this.Conf["records"].([]interface{})
+	for _, v := range records {
+		vv := v.(map[string]interface{})
+		if _, ok := vv["country"]; ok {
+			_country = vv["country"].(string)
+		} else {
+			_country = ""
+		}
+		if _, ok := vv["continent"]; ok {
+			_continent = vv["continent"].(string)
+		} else {
+			_continent = ""
+		}
+		if _country != "" && _country == country {
+			return this.NormalRecord(vv["record"].([]interface{}))
+		}
+		if _continent != "" && _continent == continent {
+			answer_records = vv["record"].([]interface{})
+		}
+
+		//log.Printf("%+v, %+v", _country, _continent)
+	}
+	return this.NormalRecord(answer_records)
 }
 
 func (this *RecordAPlugin) getMaxWeight() int {

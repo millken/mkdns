@@ -8,12 +8,20 @@
 			"Rev": "443a628bc233f634a75bcbdd71fe5350789f1afa"
 		},
 		{
+			"ImportPath": "github.com/abh/geoip",
+			"Rev": "917745c7ac5c2f92c815ed169cc1680474700951"
+		},
+		{
 			"ImportPath": "github.com/miekg/dns",
 			"Rev": "6b54d9f8631d1c286125c0be5bed7597998c4bb5"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
 			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "141348dbea35c4425d2a70b3bae4c9b8925c3c59"
 		}
 	]
 }
