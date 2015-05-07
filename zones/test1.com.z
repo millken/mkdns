@@ -1,7 +1,7 @@
 @	3600	SOA  {"mname": "ns1.test1.com.", "nname": "dns-admin.test1.com.", "serial": 305419896, "refresh": 1193046,"retry": 624485, "expire": 4913, "minttl": 38933}
 
 @ 600 NS {"record":["ns1.test1.com.", "ns2.test2.com."]}
-@	600   A	{"record" : ["1.47.46.2", "1.2.3.3"]}
+@	600   A	{["record" : ["1.47.46.2", "1.2.3.3"]]}
 view	600   A	{"type": 1, "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "view": "any"}, {"record": ["1.2.3.4", "1.2.4.5"], "view": "dx"}]}
 weight	600   A	{"type": 2, "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "weight": 3}, {"record": ["1.2.3.4", "1.2.4.5"], "weight": 7}, {"record": ["7.7.7.7"], "weight": 10}]}
 b   312  A  {"type": 3,  "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "weight":3, "view":"any"},{"record": ["1.47.46.2", "1.2.3.3"], "weight":9}]}

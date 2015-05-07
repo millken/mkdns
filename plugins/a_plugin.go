@@ -40,39 +40,52 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 
 func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
 	//log.Printf("conf : %+v", conf)
+	var records []interface{}
+	var ok bool
 	this.Conf = conf
-	if _, ok := conf["type"]; !ok {
-		return this.NormalRecord(this.Conf["records"].([]interface{}))
-	}
+	if _, ok = conf["type"]; !ok {
+		if _, ok = this.Conf["record"]; ok {
+			records = this.Conf["record"].([]interface{})
+		}
+	}else{
+	records = this.Conf["records"].([]interface{})
 	record_type := conf["type"].(uint64)
 	if record_type&GEO == GEO {
-		return this.GeoRecord()
+		records = this.GeoRecord(records)
 	}
 	if record_type&VIEW == VIEW {
 		return this.ViewRecord()
 	}
 	if record_type&WEIGHT == WEIGHT {
-		return this.WeightRecord()
+		records = this.WeightRecord(records)
 	}
-	return
+}
+	return this.NormalRecord(records)
 }
 
 func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
+	var ok bool
 	for _, v := range records {
-		ip := net.ParseIP(strings.TrimSpace(v.(string)))
+		if _, ok = v.(map[string]interface{})["record"]; !ok {
+			continue
+		}
+		for  _, vv := range v.(map[string]interface{})["record"].([]interface{}) {
+		ip := net.ParseIP(strings.TrimSpace(vv.(string)))
 		if ip == nil {
 			continue
 		}
 		answer = append(answer, &dns.A{this.RRheader, ip})
+		}
 	}
 	return
 }
 
 //http://www.wangshangyou.com/go/126.html
-func (this *RecordAPlugin) WeightRecord() (answer []dns.RR, err error) {
+func (this *RecordAPlugin) WeightRecord(records []interface{}) (answer []interface{}) {
+	var ok bool
+	var w uint64
 	maxweight := this.getMaxWeight()
 	//log.Printf("maxweight : %d", maxweight)
-	records := this.Conf["records"].([]interface{})
 	for {
 		upChooseRecord = (upChooseRecord + 1) % len(records)
 		if upChooseRecord == 0 {
@@ -81,9 +94,15 @@ func (this *RecordAPlugin) WeightRecord() (answer []dns.RR, err error) {
 				currentWeight = maxweight
 			}
 		}
-		if weight := int(records[upChooseRecord].(map[string]interface{})["weight"].(uint64)); weight >= currentWeight {
+		if _, ok = records[upChooseRecord].(map[string]interface{})["weight"]; !ok {
+			w = 0
+		}else{
+			w = records[upChooseRecord].(map[string]interface{})["weight"].(uint64)
+		}		
+		if weight := int(w); weight >= currentWeight {
 			//log.Printf("%+v", records[upChooseRecord])
-			return this.NormalRecord(records[upChooseRecord].(map[string]interface{})["record"].([]interface{}))
+			answer = append(answer, records[upChooseRecord])
+			break
 		}
 	}
 
@@ -94,12 +113,10 @@ func (this *RecordAPlugin) ViewRecord() (answer []dns.RR, err error) {
 	return
 }
 
-func (this *RecordAPlugin) GeoRecord() (answer []dns.RR, err error) {
+func (this *RecordAPlugin) GeoRecord(records []interface{}) (answer []interface{}) {
 	var _country, _continent string
-	var answer_records []interface{}
 	country, continent, netmask := geoIP.GetCountry(this.EdnsAddr)
 	log.Printf("geoip= %s, country= %s, continent=%s, netmask=%d", this.EdnsAddr, country, continent, netmask)
-	records := this.Conf["records"].([]interface{})
 	for _, v := range records {
 		vv := v.(map[string]interface{})
 		if _, ok := vv["country"]; ok {
@@ -112,22 +129,25 @@ func (this *RecordAPlugin) GeoRecord() (answer []dns.RR, err error) {
 		} else {
 			_continent = ""
 		}
-		if _country != "" && _country == country {
-			return this.NormalRecord(vv["record"].([]interface{}))
+		if (_country != "" && _country == country) || (_continent != "" && _continent == continent) {
+			answer = append(answer, v)
 		}
-		if _continent != "" && _continent == continent {
-			answer_records = vv["record"].([]interface{})
-		}
-
 		//log.Printf("%+v, %+v", _country, _continent)
 	}
-	return this.NormalRecord(answer_records)
+	return 
 }
 
 func (this *RecordAPlugin) getMaxWeight() int {
+	var ok bool
+	var w uint64
 	maxweight := 0
 	for _, v := range this.Conf["records"].([]interface{}) {
-		weight := int(v.(map[string]interface{})["weight"].(uint64))
+		if _, ok = v.(map[string]interface{})["weight"]; !ok {
+			w = 0
+		}else{
+			w = v.(map[string]interface{})["weight"].(uint64)
+		}
+		weight := int(w)
 		if weight > maxweight {
 			maxweight = weight
 		}
