@@ -39,20 +39,20 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 }
 
 func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	log.Printf("conf : %+v", conf)
+	//log.Printf("conf : %+v", conf)
 	this.Conf = conf
 	if _, ok := conf["type"]; !ok {
 		return this.NormalRecord(this.Conf["records"].([]interface{}))
 	}
 	record_type := conf["type"].(uint64)
+	if record_type&GEO == GEO {
+		return this.GeoRecord()
+	}
 	if record_type&VIEW == VIEW {
 		return this.ViewRecord()
 	}
 	if record_type&WEIGHT == WEIGHT {
 		return this.WeightRecord()
-	}
-	if record_type&GEO == GEO {
-		return this.GeoRecord()
 	}
 	return
 }

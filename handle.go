@@ -23,16 +23,16 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	domain := strings.ToLower(q.Name)
 	zone := FindZoneByDomain(domain)
-
-	var zone_name string
-	if zone == nil {
-		zone_name = "NULL"
-	} else {
-		zone_name = zone.Name
-	}
-	log.Printf("[zone %s] incoming %s %s %d from %s\n", zone_name, req.Question[0].Name,
-		dns.TypeToString[q.Qtype], req.MsgHdr.Id, w.RemoteAddr())
-
+	/*
+		var zone_name string
+		if zone == nil {
+			zone_name = "NULL"
+		} else {
+			zone_name = zone.Name
+		}
+		log.Printf("[zone %s] incoming %s %s %d from %s\n", zone_name, req.Question[0].Name,
+			dns.TypeToString[q.Qtype], req.MsgHdr.Id, w.RemoteAddr())
+	*/
 	if zone == nil {
 		m.SetRcode(req, dns.RcodeNameError)
 		w.WriteMsg(m)
@@ -98,8 +98,15 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	}
 	m, err := zone.FindRecord(req)
 	if err != nil {
+		m.Ns = append(m.Ns, zone.SoaRR())
 		logger.Error("zone error : %s", err)
+	} else {
+		m.Ns = zone.NsRR()
 	}
+	m.Authoritative = true
+
+	//logger.Debug("%s", m)
+
 	w.WriteMsg(m)
 	return
 }

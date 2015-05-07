@@ -53,13 +53,14 @@ type ZoneOptions struct {
 type Zone struct {
 	Name    string
 	Records Records
-	Soa     *Soa
+	Soa     dns.RR
+	Ns      []dns.RR
 	Options ZoneOptions
 }
 
 func NewZone() *Zone {
 	zone := new(Zone)
-	zone.Soa = new(Soa)
+	//zone.Soa = []dns.RR
 	zone.Records = make(map[Zck]*Record)
 	zone.Options.EdnsAddr = nil
 	zone.Options.RemoteAddr = nil
@@ -93,7 +94,7 @@ func (z *Zone) LoadFile(file string) (err error) {
 	for scanner.Scan() {
 		//logger.Debug("%v %s", scanner.Bytes(), scanner.Text())
 		c := scanner.Text()
-		logger.Debug("c=%s, unicode.IsSpace([]rune(c)[0])=%v", c, unicode.IsSpace([]rune(c)[0]))
+		//logger.Debug("c=%s, unicode.IsSpace([]rune(c)[0])=%v", c, unicode.IsSpace([]rune(c)[0]))
 		if c == "\n" && int(b) == 1 {
 			line = line + 1
 			text := strings.TrimSpace(a)
@@ -146,10 +147,11 @@ func (z *Zone) LoadFile(file string) (err error) {
 		return fmt.Errorf("Error reading zone file: %s, line : %d", scanner.Err(), line)
 	}
 	z.Records = records
-	logger.Debug("zone(%s)\n %s", file, z)
+	//logger.Debug("zone(%s)\n %s", file, z)
 	return nil
 }
 
+/*
 func (z *Zone) String() string {
 	ret := fmt.Sprintf("SOA { %s %s\n %d %d %d %d %d\n }", z.Soa.Mname, z.Soa.Nname, z.Soa.Serial, z.Soa.Refresh, z.Soa.Retry, z.Soa.Expire, z.Soa.Minttl)
 	for zck, r := range z.Records {
@@ -157,49 +159,7 @@ func (z *Zone) String() string {
 	}
 	return ret
 }
-
-func (z *Zone) parseSoa(s string) (soa *Soa, err error) {
-
-	slist := strings.SplitN(s, " ", 7)
-	if len(slist) < 7 {
-		return nil, errors.New("line formart error")
-	}
-	//soa = new(Soa)
-	mname := slist[0]
-	nname := slist[1]
-	serial, err := strconv.Atoi(slist[2])
-	if err != nil {
-		return nil, err
-	}
-	refresh, err := strconv.Atoi(slist[3])
-	if err != nil {
-		return nil, err
-	}
-	retry, err := strconv.Atoi(slist[3])
-	if err != nil {
-		return nil, err
-	}
-	expire, err := strconv.Atoi(slist[3])
-	if err != nil {
-		return nil, err
-	}
-	minttl, err := strconv.Atoi(slist[3])
-	if err != nil {
-		return nil, err
-	}
-	soa = &Soa{
-		Mname:   mname,
-		Nname:   nname,
-		Serial:  uint32(serial),
-		Refresh: uint32(refresh),
-		Retry:   uint32(retry),
-		Expire:  uint32(expire),
-		Minttl:  uint32(minttl),
-	}
-
-	return
-}
-
+*/
 func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 	var dtype uint16
 	logger.Debug("line[%d] = [%s]", line, text)
@@ -232,9 +192,54 @@ func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 		Type:  dtype,
 		Value: value,
 	}
+	if label == "@" && dtype == dns.TypeSOA {
+		z.setSoaRR(ttl, value)
+	}
+
+	if label == "@" && dtype == dns.TypeNS {
+		z.setNsRR(ttl, value)
+	}
 
 	logger.Debug("%v", textlist)
 	return record, nil
+}
+
+func (z *Zone) setSoaRR(ttl int, conf map[string]interface{}) {
+
+	rr_header := dns.RR_Header{
+		Name:   z.Name + ".",
+		Rrtype: dns.TypeSOA,
+		Class:  dns.ClassINET,
+		Ttl:    uint32(ttl),
+	}
+	z.Soa = &dns.SOA{
+		Hdr:     rr_header,
+		Ns:      conf["mname"].(string),
+		Mbox:    conf["nname"].(string),
+		Serial:  uint32(conf["serial"].(uint64)),
+		Refresh: uint32(conf["refresh"].(uint64)),
+		Retry:   uint32(conf["retry"].(uint64)),
+		Expire:  uint32(conf["expire"].(uint64)),
+		Minttl:  uint32(conf["minttl"].(uint64)),
+	}
+	logger.Debug("SOA=%s", z.Soa)
+}
+
+func (z *Zone) setNsRR(ttl int, value map[string]interface{}) {
+	logger.Debug("z.name=%s", z.Name)
+	rr_header := dns.RR_Header{
+		Name:   z.Name + ".",
+		Rrtype: dns.TypeNS,
+		Class:  dns.ClassINET,
+		Ttl:    uint32(ttl),
+	}
+	plugin := plugins.Get(dns.TypeNS).(plugins.Plugin)
+	if plugin == nil {
+		logger.Error("plugin: %d not register", dns.TypeNS)
+		return
+	}
+	plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
+	z.Ns, _ = plugin.Filter(value)
 }
 
 func (z *Zone) parseLabel(label string) (ret string, err error) {
@@ -259,6 +264,14 @@ func (z *Zone) parseValue(value string) (map[string]interface{}, error) {
 	return ret, err
 }
 
+func (z *Zone) SoaRR() dns.RR {
+	return z.Soa
+}
+
+func (z *Zone) NsRR() []dns.RR {
+	return z.Ns
+}
+
 func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	//var answer dns.RR
 	var slab string
@@ -273,7 +286,7 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 		slab = strings.ToLower(q.Name[0:tl])
 	}
 
-	logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
+	//logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
 	zck := Zck{L: slab, T: q.Qtype}
 	if r, ok := z.Records[zck]; ok {
 
