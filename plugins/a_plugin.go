@@ -44,8 +44,8 @@ func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR,
 	var ok bool
 	this.Conf = conf
 	if _, ok = conf["type"]; !ok {
-		if _, ok = this.Conf["record"]; ok {
-			records = this.Conf["record"].([]interface{})
+		if _, ok = this.Conf["records"]; ok {
+			records = this.Conf["records"].([]interface{})
 		}
 	}else{
 	records = this.Conf["records"].([]interface{})
@@ -84,10 +84,14 @@ func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR,
 func (this *RecordAPlugin) WeightRecord(records []interface{}) (answer []interface{}) {
 	var ok bool
 	var w uint64
+	rlen := len(records)
+	if rlen == 0 {
+		return
+	}
 	maxweight := this.getMaxWeight()
 	//log.Printf("maxweight : %d", maxweight)
 	for {
-		upChooseRecord = (upChooseRecord + 1) % len(records)
+		upChooseRecord = (upChooseRecord + 1) % rlen
 		if upChooseRecord == 0 {
 			currentWeight = currentWeight - 2
 			if currentWeight <= 0 {
@@ -115,8 +119,17 @@ func (this *RecordAPlugin) ViewRecord() (answer []dns.RR, err error) {
 
 func (this *RecordAPlugin) GeoRecord(records []interface{}) (answer []interface{}) {
 	var _country, _continent string
-	country, continent, netmask := geoIP.GetCountry(this.EdnsAddr)
-	log.Printf("geoip= %s, country= %s, continent=%s, netmask=%d", this.EdnsAddr, country, continent, netmask)
+	var remote_addr net.IP
+	var def_answer []interface{}
+	hitGeo := false
+	if this.EdnsAddr != nil {
+		remote_addr = this.EdnsAddr
+	}else{
+		remote_addr = this.RemoteAddr
+	}
+	country, continent, netmask := geoIP.GetCountry(remote_addr)
+	log.Printf("geoip= %s, country= %s, continent=%s, netmask=%d", remote_addr, country, continent, netmask)
+
 	for _, v := range records {
 		vv := v.(map[string]interface{})
 		if _, ok := vv["country"]; ok {
@@ -129,10 +142,17 @@ func (this *RecordAPlugin) GeoRecord(records []interface{}) (answer []interface{
 		} else {
 			_continent = ""
 		}
+		if _country == "" && _continent == "" {
+			def_answer = append(def_answer, v)
+		}
 		if (_country != "" && _country == country) || (_continent != "" && _continent == continent) {
+			hitGeo = true
 			answer = append(answer, v)
 		}
 		//log.Printf("%+v, %+v", _country, _continent)
+	}
+	if !hitGeo {
+		answer = def_answer
 	}
 	return 
 }

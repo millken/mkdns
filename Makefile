@@ -45,6 +45,7 @@ bootstrap:
 	gox -build-toolchain
 
 setup:
+	#yum install geoip geoip-devel -y
 	go get github.com/tools/godep
 #	godep get github.com/mitchellh/gox
 #	godep get github.com/jteeuwen/go-bindata/...

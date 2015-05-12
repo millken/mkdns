@@ -6,4 +6,4 @@ view	600   A	{"type": 1, "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "view
 weight	600   A	{"type": 2, "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "weight": 3}, {"record": ["1.2.3.4", "1.2.4.5"], "weight": 7}, {"record": ["7.7.7.7"], "weight": 10}]}
 b   312  A  {"type": 3,  "records" : [{"record": ["1.47.46.2", "1.2.3.3"], "weight":3, "view":"any"},{"record": ["1.47.46.2", "1.2.3.3"], "weight":9}]}
 geo-1 600   A  {"type": 4, "records" : [{"record": ["1.7.6.2"], "country": "cn"}, {"record": ["1.2.3.4", "1.2.4.5"], "country": "kr"}, {"record": ["1.1.1.1", "1.2.2.3", "1.1.1.2"], "continent": "north-america"}, {"record": ["1.1.1.3"], "country": "us"}]}
-geo-2 600   A  {"type": 6, "records" : [{"record": ["1.7.6.2"], "country": "cn"}, {"record": ["1.1.1.3"], "country": "cn"}]}
+geo-2 600   A  {"type": 6, "records" : [{"record": ["3.7.6.2"]}, {"record": ["1.7.6.2"], "country": "cn"}, {"record": ["1.1.1.3"], "country": "cn"}]}
