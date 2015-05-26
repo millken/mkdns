@@ -17,6 +17,7 @@ import (
 	"github.com/millken/mkdns/plugins"
 	"github.com/ugorji/go/codec"
 	"github.com/umisama/go-regexpcache"
+	"github.com/Zverushko/punycode"
 )
 
 type Soa struct {
@@ -185,6 +186,11 @@ func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 		return nil, fmt.Errorf("parselable error: %q", err)
 	}
 
+	punycode_lable, err := punycode.ToASCII(label)
+	if err != nil {
+		return nil, fmt.Errorf("parse label to punycode error: %q", err)
+	}
+
 	ttl, err := z.parseTtl(textlist[1])
 	if err != nil {
 		return nil, fmt.Errorf("parsettl error: %q", err)
@@ -200,7 +206,7 @@ func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 		return nil, fmt.Errorf("%s : %s", textlist[3], err)
 	}
 	record = &ORecord{
-		Label: label,
+		Label: punycode_lable,
 		Ttl:   ttl,
 		Type:  dtype,
 		Value: value,

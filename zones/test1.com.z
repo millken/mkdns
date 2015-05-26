@@ -16,3 +16,5 @@ aa.*     353   A  {"records" : [{"record": ["1.2.3.6"]}]}
 *.*     353   A  {"records" : [{"record": ["1.2.3.7"]}]}
 a*b*.c 353   A  {"records" : [{"record": ["1.2.3.8"]}]}
 ^aa.*$ 353   A  {"records" : [{"record": ["1.2.3.9"]}]}
+bücher 22  A {"records" : [{"record": ["2.2.3.9"]}]}
+中文 22  A {"records" : [{"record": ["2.2.3.0"]}]}
