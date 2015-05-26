@@ -50,7 +50,7 @@ func (this *RecordCNAMEPlugin) NormalRecord(records []interface{}) (answer []dns
 		}
 		for _, vv := range v.(map[string]interface{})["record"].([]interface{}) {
 			value := strings.TrimSpace(vv.(string))
-			answer = append(answer, &dns.CNAME{this.RRheader, value})
+			answer = append(answer, &dns.CNAME{this.RRheader, dns.Fqdn(value)})
 		}
 	}
 	return
