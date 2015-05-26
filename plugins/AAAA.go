@@ -10,13 +10,13 @@ import (
 	"github.com/miekg/dns"
 )
 
-type RecordAPlugin struct {
+type RecordAAAAPlugin struct {
 	Addr     net.IP
 	RRheader dns.RR_Header
 	Conf     map[string]interface{}
 }
 
-func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
+func (this *RecordAAAAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	if edns != nil {
 		this.Addr = edns
 	} else {
@@ -26,7 +26,7 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	this.RRheader = rr_header
 }
 
-func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
+func (this *RecordAAAAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
 	//log.Printf("conf : %+v", conf)
 	var records []interface{}
 	var ok bool
@@ -44,7 +44,7 @@ func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR,
 	return this.NormalRecord(records)
 }
 
-func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
+func (this *RecordAAAAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
 	var ok bool
 	var vv map[string]interface{}
 	var vvv []interface{}
@@ -71,14 +71,14 @@ func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR,
 				log.Printf("%s is not a valid ip", strings.TrimSpace(vvvv.(string)))
 				continue
 			}
-			answer = append(answer, &dns.A{this.RRheader, ip})
+			answer = append(answer, &dns.AAAA{this.RRheader, ip})
 		}
 	}
 	return
 }
 
 func init() {
-	RegisterPlugin("A", dns.TypeA, func() interface{} {
-		return new(RecordAPlugin)
+	RegisterPlugin("AAAA", dns.TypeAAAA, func() interface{} {
+		return new(RecordAAAAPlugin)
 	})
 }

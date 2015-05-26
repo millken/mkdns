@@ -10,13 +10,13 @@ import (
 	"github.com/miekg/dns"
 )
 
-type RecordAPlugin struct {
+type RecordMXPlugin struct {
 	Addr     net.IP
 	RRheader dns.RR_Header
 	Conf     map[string]interface{}
 }
 
-func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
+func (this *RecordMXPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	if edns != nil {
 		this.Addr = edns
 	} else {
@@ -26,7 +26,7 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	this.RRheader = rr_header
 }
 
-func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
+func (this *RecordMXPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
 	//log.Printf("conf : %+v", conf)
 	var records []interface{}
 	var ok bool
@@ -44,10 +44,11 @@ func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR,
 	return this.NormalRecord(records)
 }
 
-func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
+func (this *RecordMXPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
 	var ok bool
-	var vv map[string]interface{}
+	var vv, vvvvv map[string]interface{}
 	var vvv []interface{}
+	var pref uint16
 	for _, v := range records {
 		switch vt := v.(type) {
 		case map[string]interface{}:
@@ -66,19 +67,39 @@ func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR,
 			log.Printf("records value error, type= %v", vt)
 		}
 		for _, vvvv := range vvv {
-			ip := net.ParseIP(strings.TrimSpace(vvvv.(string)))
-			if ip == nil {
-				log.Printf("%s is not a valid ip", strings.TrimSpace(vvvv.(string)))
+			switch vt := vvvv.(type) {
+			case map[string]interface{}:
+				vvvvv = vvvv.(map[string]interface{})
+			default:
+				log.Printf("record error, type=%v", vt)
+			}
+			if _, ok = vvvvv["value"]; !ok {
+				log.Printf("value not ok")
 				continue
 			}
-			answer = append(answer, &dns.A{this.RRheader, ip})
+			value := vvvvv["value"].(string)
+			if !strings.HasSuffix(value, ".") {
+				value = value + "."
+			}
+			if _, ok = vvvvv["mx"]; !ok {
+				pref = 5
+			} else {
+				pref = uint16(vvvvv["mx"].(uint64))
+			}
+
+			dns_RR := &dns.MX{
+				Hdr:        this.RRheader,
+				Mx:         value,
+				Preference: pref,
+			}
+			answer = append(answer, dns_RR)
 		}
 	}
 	return
 }
 
 func init() {
-	RegisterPlugin("A", dns.TypeA, func() interface{} {
-		return new(RecordAPlugin)
+	RegisterPlugin("MX", dns.TypeMX, func() interface{} {
+		return new(RecordMXPlugin)
 	})
 }

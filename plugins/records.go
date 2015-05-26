@@ -54,11 +54,11 @@ func (this *BaseRecords) GetRecords() (answer []interface{}) {
 	return records
 }
 
-func (this *BaseRecords) getMaxWeight() int {
+func (this *BaseRecords) getMaxWeight(records []interface{}) int {
 	var ok bool
 	var w uint64
 	maxweight := 0
-	for _, v := range this.Records {
+	for _, v := range records {
 		if _, ok = v.(map[string]interface{})["weight"]; !ok {
 			w = 0
 		} else {
@@ -115,7 +115,7 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 		return
 	}
 
-	maxweight := this.getMaxWeight()
+	maxweight := this.getMaxWeight(records)
 	log.Printf("maxweight : %d ", maxweight)
 	for {
 		upChooseRecord = (upChooseRecord + 1) % rlen
