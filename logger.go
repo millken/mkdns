@@ -1,5 +1,6 @@
 package main
 
+/*
 import (
 	"fmt"
 	"io"
@@ -192,3 +193,4 @@ func (l *Logger) logc(lvl Level, closure func() string) {
 	)
 	l.logger.Println(msg)
 }
+*/

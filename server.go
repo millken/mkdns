@@ -5,6 +5,8 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"sync"
 	"time"
+
+	"github.com/millken/logger"
 )
 
 type server struct {

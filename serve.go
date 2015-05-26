@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/miekg/dns"
+	"github.com/millken/logger"
 )
 
 func listenAndServe(ip string) {

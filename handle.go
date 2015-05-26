@@ -1,9 +1,13 @@
 package main
 
 import (
-	"github.com/miekg/dns"
-	"github.com/rcrowley/go-metrics"
+	//"logger"
+	"net"
 	"strings"
+
+	"github.com/miekg/dns"
+	"github.com/millken/logger"
+	"github.com/rcrowley/go-metrics"
 )
 
 type Handler struct {
@@ -20,13 +24,60 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	domain := strings.ToLower(q.Name)
 	zone := FindZoneByDomain(domain)
+
+	var zone_name string
+	if zone == nil {
+		zone_name = "NULL"
+	} else {
+		zone_name = zone.Name
+	}
+	logger.Debug("[zone %s] incoming %s %s %d from %s", zone_name, req.Question[0].Name,
+		dns.TypeToString[q.Qtype], req.MsgHdr.Id, w.RemoteAddr())
+
 	if zone == nil {
 		m.SetRcode(req, dns.RcodeNameError)
+		w.WriteMsg(m)
 		return
 	}
 
+	realIp, _, _ := net.SplitHostPort(w.RemoteAddr().String())
+	zone.Options.EdnsAddr = nil
+	zone.Options.RemoteAddr = net.ParseIP(realIp)
+
+	//var edns *dns.EDNS0_SUBNET
+	//var opt_rr *dns.OPT
+
+	for _, extra := range req.Extra {
+
+		switch extra.(type) {
+		case *dns.OPT:
+			for _, o := range extra.(*dns.OPT).Option {
+				//opt_rr = extra.(*dns.OPT)
+				switch e := o.(type) {
+				case *dns.EDNS0_NSID:
+				case *dns.EDNS0_SUBNET:
+					logger.Debug("Got edns", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
+					if e.Address != nil {
+						//edns = e
+						zone.Options.EdnsAddr = e.Address
+					}
+				}
+			}
+		}
+	}
+	/*
+		// TODO: set scope to 0 if there are no alternate responses
+		if edns != nil {
+			if edns.Family != 0 {
+				if netmask < 16 {
+					netmask = 16
+				}
+				edns.SourceScope = uint8(netmask)
+				m.Extra = append(m.Extra, opt_rr)
+			}
+		}
+	*/
 	defer func() {
-		logger.Debug("(domain)=%s, (q)=%v\"%s\"", domain, q, q.String())
 		if err := w.WriteMsg(m); err != nil {
 			logger.Error("failure to return reply %s", err.Error())
 		}
@@ -46,16 +97,17 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 
 		}
 	}
-	switch q.Qtype {
-	case dns.TypeNS, dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
-		m , _ = zone.FindRecord(req)
-		return
-	default:
-		fallthrough
-	case dns.TypeSRV, dns.TypeANY:
+	m, err := zone.FindRecord(req)
+	if err != nil {
+		m.Ns = append(m.Ns, zone.SoaRR())
+		logger.Error("zone error : %s", err)
+	} else {
+		m.Ns = zone.NsRR()
 	}
+	m.Authoritative = true
 
-	m.SetRcode(req, dns.RcodeNameError)
+	//loggerger.Debug("%s", m)
+
 	w.WriteMsg(m)
 	return
 }

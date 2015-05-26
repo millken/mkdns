@@ -2,9 +2,13 @@ language: go
 go:
   - 1.4
 install:
-  - make setup
-  - make build 
+  - go get github.com/miekg/dns
+  - go get github.com/rcrowley/go-metrics
+  - go get github.com/BurntSushi/toml
+  - go get -v
+  - go build -v
+  - go install
 
 script:
-  - make test 
+  - go test 
 
