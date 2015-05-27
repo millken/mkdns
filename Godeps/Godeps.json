@@ -16,6 +16,11 @@
 			"Rev": "6b54d9f8631d1c286125c0be5bed7597998c4bb5"
 		},
 		{
+			"ImportPath": "github.com/millken/logger",
+			"Comment": "v1.0.0",
+			"Rev": "2108c8e4f78cad4b8e3ce62b239259016b38130b"
+		},
+		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
 			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
 		},
