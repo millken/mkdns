@@ -1,10 +1,10 @@
 package plugins
 
 import (
-	"log"
 	"net"
 	//"fmt"
 	//"strings"
+	"github.com/millken/logger"
 )
 
 /*
@@ -77,7 +77,7 @@ func (this *BaseRecords) GeoRecord(records []interface{}) (answer []interface{})
 	var def_answer []interface{}
 	hitGeo := false
 	country, continent, netmask := geoIP.GetCountry(this.Addr)
-	log.Printf("geoip= %s, country= %s, continent=%s, netmask=%d", this.Addr, country, continent, netmask)
+	logger.Trace("geoip= %s, country= %s, continent=%s, netmask=%d", this.Addr, country, continent, netmask)
 
 	for _, v := range records {
 		vv := v.(map[string]interface{})
@@ -116,7 +116,7 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 	}
 
 	maxweight := this.getMaxWeight(records)
-	log.Printf("maxweight : %d ", maxweight)
+	logger.Trace("maxweight : %d ", maxweight)
 	for {
 		upChooseRecord = (upChooseRecord + 1) % rlen
 		if upChooseRecord == 0 {

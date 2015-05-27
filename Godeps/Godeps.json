@@ -27,6 +27,10 @@
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
 			"Rev": "141348dbea35c4425d2a70b3bae4c9b8925c3c59"
+		},
+		{
+			"ImportPath": "github.com/umisama/go-regexpcache",
+			"Rev": "2444a542492f4c52d942f48cf0727438cae6287f"
 		}
 	]
 }

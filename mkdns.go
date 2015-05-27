@@ -44,7 +44,8 @@ func main() {
 	logger.Info("Loading config : %s, version: %s", configPath, VERSION)
 	config, err := LoadConfig(configPath)
 	if err != nil {
-		logger.Critical("Read config failed.Err = %s", err.Error())
+		logger.Error("Read config failed.Err = %s", err.Error())
+		//os.Exit(0);
 	}
 
 	logger.Finest("config= %v", config)
@@ -72,9 +73,5 @@ func main() {
 		listen()
 	*/
 	<-sigc
-	//logger.Printf("Bye bye :( %s", sigc)
-	logger.Info("god")
-
-	//os.Exit(0)
 
 }

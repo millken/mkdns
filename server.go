@@ -13,6 +13,7 @@ type server struct {
 	config     *Config
 	group      *sync.WaitGroup
 	udpHandler *dns.ServeMux
+	tcpHandler *dns.ServeMux
 	//handler  *Handler
 	//rTimeout time.Duration
 	//wTimeout time.Duration
@@ -35,6 +36,8 @@ func (s *server) Run() error {
 	}
 	s.udpHandler = dns.NewServeMux()
 	s.udpHandler.HandleFunc(".", handler.UDP)
+	s.tcpHandler = dns.NewServeMux()
+	s.tcpHandler.HandleFunc(".", handler.TCP)
 	for _, addr := range s.config.Options.Listen {
 		udpServer := &dns.Server{Addr: addr,
 			Net:          "udp",
@@ -43,7 +46,14 @@ func (s *server) Run() error {
 			ReadTimeout:  time.Duration(s.config.Options.ReadTimeout) * time.Second,
 			WriteTimeout: time.Duration(s.config.Options.WriteTimeout) * time.Second,
 		}
+		tcpServer := &dns.Server{Addr: addr,
+			Net:          "tcp",
+			Handler:      s.tcpHandler,
+			ReadTimeout:  time.Duration(s.config.Options.ReadTimeout) * time.Second,
+			WriteTimeout: time.Duration(s.config.Options.WriteTimeout) * time.Second,
+		}
 		go s.listenAndServe(addr, udpServer)
+		go s.listenAndServe(addr, tcpServer)
 	}
 	return nil
 }

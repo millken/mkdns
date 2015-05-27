@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"log"
 	"net"
 	//"fmt"
 	"strings"
@@ -54,22 +53,22 @@ func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR,
 		case map[string]interface{}:
 			vv = v.(map[string]interface{})
 		default:
-			log.Printf("records value error, type= %v", vt)
+			logger.Warn("records struct not an map[string]interface{} : %v", vt)
 		}
 		if _, ok = vv["record"]; !ok {
-			log.Printf("record not ok")
+			logger.Warn("record key not exit")
 			continue
 		}
 		switch vt := vv["record"].(type) {
 		case []interface{}:
 			vvv = vv["record"].([]interface{})
 		default:
-			log.Printf("records value error, type= %v", vt)
+			logger.Warn("records value not an list : %s", vt)
 		}
 		for _, vvvv := range vvv {
 			ip := net.ParseIP(strings.TrimSpace(vvvv.(string)))
 			if ip == nil {
-				log.Printf("%s is not a valid ip", strings.TrimSpace(vvvv.(string)))
+				logger.Error("%s is not ipv4", strings.TrimSpace(vvvv.(string)))
 				continue
 			}
 			answer = append(answer, &dns.A{this.RRheader, ip})

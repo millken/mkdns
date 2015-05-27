@@ -16,6 +16,7 @@ import (
 	"github.com/millken/logger"
 	"github.com/millken/mkdns/plugins"
 	"github.com/ugorji/go/codec"
+	"github.com/umisama/go-regexpcache"
 )
 
 type Soa struct {
@@ -54,6 +55,7 @@ type ZoneOptions struct {
 type Zone struct {
 	Name    string
 	Records Records
+	Regexp  Records
 	Soa     dns.RR
 	Ns      []dns.RR
 	Options ZoneOptions
@@ -63,6 +65,7 @@ func NewZone() *Zone {
 	zone := new(Zone)
 	//zone.Soa = []dns.RR
 	zone.Records = make(map[Zck]*Record)
+	zone.Regexp = make(map[Zck]*Record)
 	zone.Options.EdnsAddr = nil
 	zone.Options.RemoteAddr = nil
 	return zone
@@ -71,6 +74,7 @@ func NewZone() *Zone {
 func (z *Zone) LoadFile(file string) (err error) {
 	//var a, b []byte
 	records := make(Records)
+	regexp_records := make(Records)
 	line := 0
 	defer func() {
 		if e := recover(); e != nil {
@@ -100,7 +104,7 @@ func (z *Zone) LoadFile(file string) (err error) {
 			line = line + 1
 			text := strings.TrimSpace(a)
 
-			logger.Trace("(%s:%d)=%s", file, line, a)
+			logger.Finest("(%s:%d)=%s", file, line, a)
 			a = ""
 			if len(text) == 0 || text[0:1] == ";" {
 				continue
@@ -114,9 +118,16 @@ func (z *Zone) LoadFile(file string) (err error) {
 				L: r.Label,
 				T: r.Type,
 			}
-			records[zck] = &Record{
-				Ttl:   r.Ttl,
-				Value: r.Value,
+			if strings.Contains(r.Label, "*") {
+				regexp_records[zck] = &Record{
+					Ttl:   r.Ttl,
+					Value: r.Value,
+				}
+			} else {
+				records[zck] = &Record{
+					Ttl:   r.Ttl,
+					Value: r.Value,
+				}
 			}
 
 		}
@@ -148,7 +159,8 @@ func (z *Zone) LoadFile(file string) (err error) {
 		return fmt.Errorf("Error reading zone file: %s, line : %d", scanner.Err(), line)
 	}
 	z.Records = records
-	//logger.Debug("zone(%s)\n %s", file, z)
+	z.Regexp = regexp_records
+	logger.Fine("zone(%s)\n %v", file, z)
 	return nil
 }
 
@@ -163,7 +175,7 @@ func (z *Zone) String() string {
 */
 func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 	var dtype uint16
-	logger.Debug("line[%d] = [%s]", line, text)
+	logger.Fine("line[%d] = [%s]", line, text)
 	textlist := strings.SplitN(text, " ", 4)
 	if len(textlist) < 4 {
 		return nil, errors.New("line formart error")
@@ -201,7 +213,6 @@ func (z *Zone) parseLine(line int, text string) (record *ORecord, err error) {
 		z.setNsRR(ttl, value)
 	}
 
-	logger.Debug("%v", textlist)
 	return record, nil
 }
 
@@ -223,11 +234,10 @@ func (z *Zone) setSoaRR(ttl int, conf map[string]interface{}) {
 		Expire:  uint32(conf["expire"].(uint64)),
 		Minttl:  uint32(conf["minttl"].(uint64)),
 	}
-	logger.Debug("SOA=%s", z.Soa)
+	logger.Debug("zone : %s, SOA=%s", z.Name, z.Soa)
 }
 
 func (z *Zone) setNsRR(ttl int, value map[string]interface{}) {
-	logger.Debug("z.name=%s", z.Name)
 	rr_header := dns.RR_Header{
 		Name:   z.Name + ".",
 		Rrtype: dns.TypeNS,
@@ -276,9 +286,13 @@ func (z *Zone) NsRR() []dns.RR {
 func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	//var answer dns.RR
 	var slab string
+	var ok bool
+	var zck Zck
+	record := new(Record)
 	q := req.Question[0]
 	m = new(dns.Msg)
 	m.SetReply(req)
+
 	//rrtype := q.Qtype
 	if len(q.Name) == len(z.Name)+1 {
 		slab = "@"
@@ -287,15 +301,24 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 		slab = strings.ToLower(q.Name[0:tl])
 	}
 
-	//logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
-	zck := Zck{L: slab, T: q.Qtype}
-	if r, ok := z.Records[zck]; ok {
-
+	logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
+	zck = Zck{L: slab, T: q.Qtype}
+	if record, ok = z.Records[zck]; !ok {
+		for zck, record = range z.Regexp {
+			regexp_record := strings.Replace(zck.L, "*", "\\w+", -1)
+			if zck.T == q.Qtype && regexpcache.MustCompile(regexp_record).MatchString(slab) {
+				ok = true
+				logger.Debug("hit regexp : [%s] %s", slab, regexp_record)
+				break
+			}
+		}
+	}
+	if ok {
 		rr_header := dns.RR_Header{
 			Name:   q.Name,
 			Rrtype: q.Qtype,
 			Class:  dns.ClassINET,
-			Ttl:    uint32(r.Ttl),
+			Ttl:    uint32(record.Ttl),
 		}
 		plugin := plugins.Get(q.Qtype).(plugins.Plugin)
 		if plugin == nil {
@@ -303,7 +326,7 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			return
 		}
 		plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
-		m.Answer, err = plugin.Filter(r.Value)
+		m.Answer, err = plugin.Filter(record.Value)
 		/*
 				switch rrtype {
 				case dns.TypeA:
@@ -315,8 +338,8 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			}
 		*/
 	} else {
-		logger.Debug("record not found :%+v", zck)
-		err = fmt.Errorf("record not foud :%s", q.Name)
+		logger.Warn("record not found[%s] : %s", q.Name, dns.TypeToString[q.Qtype])
+		err = fmt.Errorf("record not foud :%s=>%s", dns.TypeToString[q.Qtype], q.Name)
 	}
 	return
 }

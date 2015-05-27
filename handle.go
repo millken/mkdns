@@ -14,7 +14,7 @@ type Handler struct {
 	responseTimer metrics.Timer
 }
 
-func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
+func (h *Handler) query(Net string, w dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Authoritative = true
@@ -31,8 +31,8 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 	} else {
 		zone_name = zone.Name
 	}
-	logger.Debug("[zone %s] incoming %s %s %d from %s", zone_name, req.Question[0].Name,
-		dns.TypeToString[q.Qtype], req.MsgHdr.Id, w.RemoteAddr())
+	logger.Debug("[zone %s] incoming %s %s %d from %s://%s", zone_name, req.Question[0].Name,
+		dns.TypeToString[q.Qtype], req.MsgHdr.Id, Net, w.RemoteAddr())
 
 	if zone == nil {
 		m.SetRcode(req, dns.RcodeNameError)
@@ -110,4 +110,10 @@ func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
 
 	w.WriteMsg(m)
 	return
+}
+func (h *Handler) TCP(w dns.ResponseWriter, req *dns.Msg) {
+	h.query("tcp", w, req)
+}
+func (h *Handler) UDP(w dns.ResponseWriter, req *dns.Msg) {
+	h.query("udp", w, req)
 }
