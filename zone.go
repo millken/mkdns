@@ -286,6 +286,7 @@ func (z *Zone) NsRR() []dns.RR {
 func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	//var answer dns.RR
 	var slab string
+	var tlab string
 	var ok bool
 	var zck Zck
 	record := new(Record)
@@ -304,12 +305,16 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	logger.Debug("z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
 	zck = Zck{L: slab, T: q.Qtype}
 	if record, ok = z.Records[zck]; !ok {
-		for zck, record = range z.Regexp {
-			regexp_record := strings.Replace(zck.L, "*", "\\w+", -1)
-			if zck.T == q.Qtype && regexpcache.MustCompile(regexp_record).MatchString(slab) {
+		for z, r := range z.Regexp {
+			regexp_record := strings.Replace(z.L, "*", "\\w+", -1)
+			if z.T == q.Qtype && regexpcache.MustCompile(regexp_record).MatchString(slab) {
+				if len(z.L) > len(tlab) {
+					logger.Debug("z.L = %s, tlab= %s", z.L, tlab)
+					tlab = z.L
+					record = r
+				}
 				ok = true
 				logger.Debug("hit regexp : [%s] %s", slab, regexp_record)
-				break
 			}
 		}
 	}
