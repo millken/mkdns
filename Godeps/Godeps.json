@@ -8,6 +8,10 @@
 			"Rev": "443a628bc233f634a75bcbdd71fe5350789f1afa"
 		},
 		{
+			"ImportPath": "github.com/Zverushko/punycode",
+			"Rev": "53392b7646afb458fa9af39b2b45bcf8cb26c5cf"
+		},
+		{
 			"ImportPath": "github.com/abh/geoip",
 			"Rev": "917745c7ac5c2f92c815ed169cc1680474700951"
 		},
