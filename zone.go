@@ -12,12 +12,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/Zverushko/punycode"
 	"github.com/miekg/dns"
 	"github.com/millken/logger"
 	"github.com/millken/mkdns/plugins"
 	"github.com/ugorji/go/codec"
 	"github.com/umisama/go-regexpcache"
-	"github.com/Zverushko/punycode"
 )
 
 type Soa struct {

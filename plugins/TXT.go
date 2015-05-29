@@ -2,7 +2,7 @@ package plugins
 
 import (
 	"net"
-	
+
 	"github.com/miekg/dns"
 	"github.com/millken/logger"
 )

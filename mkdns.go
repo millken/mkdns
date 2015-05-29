@@ -50,7 +50,7 @@ func main() {
 
 	logger.Finest("config= %v", config)
 
-	LoadZones(config.Options.Zones)
+	go MonitorZones(config.Options.Zones)
 
 	server := NewServer(config)
 	server.Run()

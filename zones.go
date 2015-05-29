@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/millken/logger"
@@ -14,8 +15,9 @@ import (
 type Vzones map[string]string
 
 var (
-	zones     map[string]*Zone
-	zonesLock = new(sync.RWMutex)
+	zones         map[string]*Zone
+	zonesLock     = new(sync.RWMutex)
+	lastReadZones time.Time
 )
 
 func LoadZones(zfile string) {
@@ -74,4 +76,22 @@ func FindZoneByDomain(domain string) *Zone {
 		}
 	}
 	return nil
+}
+
+func MonitorZones(fileName string) {
+	for {
+		stat, err := os.Stat(fileName)
+		if err != nil {
+			logger.Error("Failed to find zones file: %s", err)
+		}
+
+		if !stat.ModTime().After(lastReadZones) {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		lastReadZones = time.Now()
+		logger.Trace("%s changed, ready to loading!", fileName)
+		LoadZones(fileName)
+	}
 }
