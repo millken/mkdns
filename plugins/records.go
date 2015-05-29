@@ -74,8 +74,9 @@ func (this *BaseRecords) getMaxWeight(records []interface{}) int {
 
 func (this *BaseRecords) GeoRecord(records []interface{}) (answer []interface{}) {
 	var _country, _continent string
-	var def_answer []interface{}
-	hitGeo := false
+	var default_answer, country_answer, continent_answer []interface{}
+	hitContinent := false
+	hitCountry := false
 	country, continent, netmask := geoIP.GetCountry(this.Addr)
 	logger.Trace("geoip= %s, country= %s, continent=%s, netmask=%d", this.Addr, country, continent, netmask)
 
@@ -92,16 +93,25 @@ func (this *BaseRecords) GeoRecord(records []interface{}) (answer []interface{})
 			_continent = ""
 		}
 		if _country == "" && _continent == "" {
-			def_answer = append(def_answer, v)
+			default_answer = append(default_answer, v)
 		}
-		if (_country != "" && _country == country) || (_continent != "" && _continent == continent) {
-			hitGeo = true
-			answer = append(answer, v)
+		if _country != "" {
+			if _country == country {
+				hitCountry = true
+				country_answer = append(country_answer, v)
+			}
+		} else if _continent != "" && _continent == continent {
+			hitContinent = true
+			continent_answer = append(continent_answer, v)
 		}
 		//log.Printf("%+v, %+v", _country, _continent)
 	}
-	if !hitGeo {
-		answer = def_answer
+	if hitCountry {
+		answer = country_answer
+	} else if hitContinent {
+		answer = continent_answer
+	} else {
+		answer = default_answer
 	}
 	return
 }

@@ -26,7 +26,7 @@ type GeoIP struct {
 var geoIP = new(GeoIP)
 
 func init() {
-	geoIP.setDbDirectory("/home/millken/qbox_sync/db")
+	//geoIP.setDbDirectory("/home/millken/qbox_sync/db")
 	geoIP.setupGeoIPCountry()
 }
 
