@@ -1,5 +1,6 @@
 package plugins
 
+//http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 var CountryContinent = map[string]string{
 	"ad": "europe",
 	"ae": "asia",
