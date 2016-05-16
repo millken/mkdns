@@ -2,27 +2,27 @@ package main
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"os"
+
+	"github.com/BurntSushi/toml"
 )
 
 type Config struct {
-	Options OptionsConf
-	Logging LoggingConf
+	Server ServerConf
+	Log    LogConf
 }
 
-type OptionsConf struct {
-	Version      string
-	Listen       []string
-	ReadTimeout  int `toml:"read_timeout"`
-	WriteTimeout int `toml:"write_timeout"`
-	Zones        string
+type ServerConf struct {
+	Iface  string
+	Driver string
+	//ReadTimeout  int `toml:"read_timeout"`
+	//WriteTimeout int `toml:"write_timeout"`
 }
 
-type LoggingConf struct {
+type LogConf struct {
 	File  string
-	Debug string
+	Level string
 }
 
 func LoadConfig(configPath string) (config *Config, err error) {
