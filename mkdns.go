@@ -43,5 +43,7 @@ func main() {
 	log.Printf("[INFO] Loading config : %s, version: %s", *configPath, VERSION)
 
 	log.Printf("[DEBUG] config= %v , level=%s", config, config.Log.Level)
+	server := NewServer(nil)
+	server.Run()
 
 }

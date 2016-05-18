@@ -1,6 +1,7 @@
 package drivers
 
 import (
+	"log"
 	"time"
 
 	"github.com/google/gopacket"
@@ -16,7 +17,8 @@ type PcapHandle struct {
 }
 
 func NewPcapSniffer(options *DriverOptions) (PacketDataSourceCloser, error) {
-	pcapWireHandle, err := pcap.OpenLive(options.Device, options.Snaplen, true, options.WireDuration)
+	log.Printf("%s %s", options.Device, options.Filter)
+	pcapWireHandle, err := pcap.OpenLive(options.Device, options.Snaplen, true, pcap.BlockForever)
 	pcapHandle := PcapHandle{
 		handle: pcapWireHandle,
 	}
