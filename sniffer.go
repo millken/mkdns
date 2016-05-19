@@ -97,7 +97,7 @@ func (i *Sniffer) capturePackets() {
 		log.Fatal(err)
 	}
 	defer handle.Close()
-	handle.SetBPFFilter("udp")
+	handle.SetBPFFilter("dst port 53")
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		headers, err := Parse(packet)

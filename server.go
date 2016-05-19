@@ -13,6 +13,7 @@ const BPFFilter = "udp and dst port 53"
 type server struct {
 	config           *Config
 	sniffer          *Sniffer
+	wire             *Wire
 	childStoppedChan chan bool
 	forceQuitChan    chan os.Signal
 	//handler  *Handler
@@ -21,23 +22,23 @@ type server struct {
 }
 
 func NewServer(config *Config) *server {
-	snifferOption := &drivers.DriverOptions{
+	wireOption := &drivers.DriverOptions{
 		DAQ:     "libpcap",
 		Device:  "enp3s0",
 		Snaplen: 1024,
 		Filter:  BPFFilter,
 	}
-	sniffer := NewSniffer(snifferOption)
+	wire := NewWire(wireOption)
 	return &server{
 		config:           config,
-		sniffer:          sniffer,
+		wire:             wire,
 		forceQuitChan:    make(chan os.Signal, 1),
 		childStoppedChan: make(chan bool, 0),
 	}
 }
 
 func (s *server) Run() {
-	s.sniffer.Start()
+	s.wire.Start()
 	signal.Notify(s.forceQuitChan, os.Interrupt)
 
 	select {
