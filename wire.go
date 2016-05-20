@@ -108,41 +108,51 @@ func (i *Wire) Start() {
 		log.Printf("[DEBUG] headers : %s", headers.dns)
 		req := headers.dns
 		m := new(dns.Msg)
-		m.SetReply(req)
+		if req != nil {
+			m.SetReply(req)
+			m.SetRcode(req, dns.RcodeNameError)
+		}
 		m.Authoritative = true
 		if e := m.IsEdns0(); e != nil {
 			m.SetEdns0(4096, e.Do())
 		}
-		m.SetRcode(req, dns.RcodeNameError)
 		buf := gopacket.NewSerializeBuffer()
 		opts := gopacket.SerializeOptions{
 			FixLengths:       true,
 			ComputeChecksums: true,
 		}
-		ethernetPacket := &layers.Ethernet{
-			SrcMAC: headers.ethernet.DstMAC,
-			DstMAC: headers.ethernet.SrcMAC,
-		}
-		ipv4Packet := &layers.IPv4{
-			SrcIP: headers.ipv4.DstIP,
-			DstIP: headers.ipv4.SrcIP,
-		}
-		udpPacket := &layers.UDP{
-			SrcPort: headers.udp.DstPort,
-			DstPort: headers.udp.SrcPort,
-		}
-		udpPacket.SetNetworkLayerForChecksum(ipv4Packet)
+		ethMac := headers.ethernet.DstMAC
+		headers.ethernet.DstMAC = headers.ethernet.SrcMAC
+		headers.ethernet.SrcMAC = ethMac
+
+		ipv4SrcIp := headers.ipv4.SrcIP
+		headers.ipv4.SrcIP = headers.ipv4.DstIP
+		headers.ipv4.DstIP = ipv4SrcIp
+
+		udpSrcPort := headers.udp.SrcPort
+		headers.udp.SrcPort = headers.udp.DstPort
+		headers.udp.DstPort = udpSrcPort
+		headers.udp.SetNetworkLayerForChecksum(headers.ipv4)
 		out, err := m.Pack()
 		if err != nil {
 			log.Printf("dnsMsg Pack error :%s", err)
 		}
 		gopacket.SerializeLayers(buf, opts,
-			ethernetPacket,
-			ipv4Packet,
-			udpPacket,
+			headers.ethernet,
+			headers.ipv4,
+			headers.udp,
 			gopacket.Payload(out))
-		log.Printf("dns send packet: ---- rawPacket ----\n%v\n", hex.Dump(buf.Bytes()))
-		handle.WritePacketData(buf.Bytes())
+		log.Printf("dns send packet:\n"+
+			"---- ethernet ----\n "+
+			"---- ipv4o ----\n "+
+			"---- ipv4 ----\n "+
+			"---- udp ----\n\n "+
+			"---- rawPacket ----\n%v\n",
+			hex.Dump(buf.Bytes()))
+		err = handle.WritePacketData(buf.Bytes())
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
