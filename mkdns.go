@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/google/gopacket/examples/util"
 	"github.com/hashicorp/logutils"
@@ -44,6 +45,18 @@ func main() {
 
 	log.Printf("[DEBUG] config= %v , level=%s", config, config.Log.Level)
 	server := NewServer(nil)
-	server.Run()
+	if err = server.Start(); err != nil {
+		log.Printf("[ERROR] :%s", err)
+	}
+	signal.Notify(server.forceQuitChan, os.Interrupt)
+
+	select {
+	case <-server.forceQuitChan:
+		log.Print("graceful shutdown: user force quit\n")
+		log.Print("stopping sniffer")
+		log.Print("supervisor waiting for child to stop\n")
+	case <-server.childStoppedChan:
+		log.Print("graceful shutdown: packet-source stopped")
+	}
 
 }

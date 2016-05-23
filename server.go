@@ -1,53 +1,87 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
-	"os/signal"
 
+	"github.com/google/gopacket"
 	"github.com/millken/mkdns/drivers"
+	"github.com/millken/mkdns/stats"
 )
 
 const BPFFilter = "udp and dst port 53"
 
 type server struct {
 	config           *Config
-	sniffer          *Sniffer
-	wire             *Wire
+	io               drivers.PacketDataSourceCloser
+	stats            stats.Directional
 	childStoppedChan chan bool
 	forceQuitChan    chan os.Signal
-	//handler  *Handler
+	txChan           chan PacketLayer
+	rxChan           chan gopacket.Packet
+	//handler          *Handler
 	//rTimeout time.Duration
 	//wTimeout time.Duration
 }
 
 func NewServer(config *Config) *server {
-	wireOption := &drivers.DriverOptions{
-		DAQ:     "libpcap",
-		Device:  "enp3s0",
-		Snaplen: 1024,
-		Filter:  BPFFilter,
-	}
-	wire := NewWire(wireOption)
 	return &server{
 		config:           config,
-		wire:             wire,
 		forceQuitChan:    make(chan os.Signal, 1),
 		childStoppedChan: make(chan bool, 0),
+		rxChan:           make(chan gopacket.Packet),
 	}
 }
 
-func (s *server) Run() {
-	s.wire.Start()
-	signal.Notify(s.forceQuitChan, os.Interrupt)
+func (s *server) Start() (err error) {
+	options := &drivers.DriverOptions{
+		Device:  "enp3s0",
+		Snaplen: 2048,
+		Filter:  BPFFilter,
+	}
 
-	select {
-	case <-s.forceQuitChan:
-		log.Print("graceful shutdown: user force quit\n")
-		log.Print("stopping sniffer")
-		s.sniffer.Stop()
-		log.Print("supervisor waiting for child to stop\n")
-	case <-s.childStoppedChan:
-		log.Print("graceful shutdown: packet-source stopped")
+	factory, ok := drivers.Drivers["libpcap"]
+	if !ok {
+		log.Fatal(fmt.Sprintf("%s Packet driver not supported on this system", s.config.Server.Driver))
+	}
+
+	s.io, err = factory(options)
+	if err != nil {
+		return
+	}
+	for i := 0; i < 8; i++ {
+		go packetHandler(i, s.rxChan)
+	}
+	go s.readPackets()
+	go s.sendPackets()
+	return
+}
+
+func (s *server) sendPackets() {
+	for {
+		//p := (<-s.txChan)
+		//s.io.WritePacketData(p.Data())
+		s.stats.Tx.Packets++
+		//d.stats.Tx.Bytes += uint64(p.Metadata().CaptureInfo.CaptureLength)
+	}
+}
+
+func (s *server) readPackets() {
+	packetSource := s.io.PacketSource()
+	for true {
+
+		packet, err := packetSource.NextPacket()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Println("Error:", err)
+			continue
+		}
+		s.stats.Rx.Packets++
+
+		s.rxChan <- packet
+		//handlePacket(packet)
 	}
 }
