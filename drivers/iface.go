@@ -12,5 +12,5 @@ type PacketDataSourceCloser interface {
 	ReadPacketData() (data []byte, ci gopacket.CaptureInfo, err error)
 	WritePacketData(data []byte) (err error)
 	PacketSource() *gopacket.PacketSource
-	Close() (err error)
+	Close()
 }

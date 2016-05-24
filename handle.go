@@ -4,14 +4,28 @@ import (
 	"log"
 
 	"github.com/google/gopacket"
+	"github.com/miekg/dns"
 )
 
-func packetHandler(i int, in <-chan gopacket.Packet) {
+func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 	for packet := range in {
-		headers, err := parsePacket(packet)
-		if err != nil {
-			log.Println(err)
+		p, err := parsePacket(packet)
+		if err != nil || p.dns == nil {
+			log.Printf("[ERROR] parsePacket %s", err)
+			continue
 		}
-		log.Printf("[DEBUG] headers :%d => %s", i, headers.dns)
+		log.Printf("[FINE] worker : %d ,data:\n%s", i, p.dns)
+		req := p.dns
+		m := new(dns.Msg)
+		if req != nil {
+			m.SetReply(req)
+			m.SetRcode(req, dns.RcodeNameError)
+		}
+		m.Authoritative = true
+		if e := m.IsEdns0(); e != nil {
+			m.SetEdns0(4096, e.Do())
+		}
+		p.dns = m
+		out <- p
 	}
 }

@@ -1,7 +1,7 @@
 package drivers
 
 import (
-	"log"
+	"net"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
@@ -16,8 +16,12 @@ type PcapHandle struct {
 }
 
 func NewPcapHandle(options *DriverOptions) (PacketDataSourceCloser, error) {
-	log.Printf("[INFO] %s %s", options.Device, options.Filter)
-	pcapWireHandle, err := pcap.OpenLive(options.Device, options.Snaplen, true, pcap.BlockForever)
+	// Get interfaces.
+	iface, err := net.InterfaceByName(options.Device)
+	if err != nil {
+		return nil, err
+	}
+	pcapWireHandle, err := pcap.OpenLive(iface.Name, options.Snaplen, true, pcap.BlockForever)
 	pcapHandle := PcapHandle{
 		handle: pcapWireHandle,
 	}
@@ -37,7 +41,9 @@ func (p *PcapHandle) WritePacketData(data []byte) (err error) {
 	return p.handle.WritePacketData(data)
 }
 
-func (p *PcapHandle) Close() error {
-	p.handle.Close()
-	return nil
+func (p *PcapHandle) Close() {
+	if p.handle != nil {
+		p.handle.Close()
+		p.handle = nil
+	}
 }
