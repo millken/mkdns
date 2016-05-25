@@ -1,5 +1,4 @@
-export GOPATH=$(cd "$(dirname "$0")"; pwd)
-
+#export GOPATH=$(cd "$(dirname "$0")"; pwd)
 BINDATA_IGNORE = $(shell git ls-files -io --exclude-standard $< | sed 's/^/-ignore=/;s/[.]/[.]/g')
 
 usage:
@@ -34,7 +33,9 @@ dev: dev-assets
 
 format:	
 	go fmt ./...
-build: 
+
+build:
+	@export GO15VENDOREXPERIMENT=1
 	godep go build
 	@echo "You can now execute ./mkdns"
 

@@ -1,0 +1,56 @@
+{
+	"ImportPath": "github.com/millken/mkdns",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v71",
+	"Deps": [
+		{
+			"ImportPath": "github.com/BurntSushi/toml",
+			"Comment": "v0.2.0-9-gf0aeabc",
+			"Rev": "f0aeabca5a127c4078abb8c8d64298b147264b55"
+		},
+		{
+			"ImportPath": "github.com/Zverushko/punycode",
+			"Rev": "53392b7646afb458fa9af39b2b45bcf8cb26c5cf"
+		},
+		{
+			"ImportPath": "github.com/abh/geoip",
+			"Rev": "07cea4480daa3f28edd2856f2a0490fbe83842eb"
+		},
+		{
+			"ImportPath": "github.com/google/gopacket",
+			"Comment": "v1.1.11-115-gb09bf40",
+			"Rev": "b09bf408520f7646e29b7033d9adb00ed779a1c4"
+		},
+		{
+			"ImportPath": "github.com/google/gopacket/examples/util",
+			"Comment": "v1.1.11-115-gb09bf40",
+			"Rev": "b09bf408520f7646e29b7033d9adb00ed779a1c4"
+		},
+		{
+			"ImportPath": "github.com/google/gopacket/layers",
+			"Comment": "v1.1.11-115-gb09bf40",
+			"Rev": "b09bf408520f7646e29b7033d9adb00ed779a1c4"
+		},
+		{
+			"ImportPath": "github.com/google/gopacket/pcap",
+			"Comment": "v1.1.11-115-gb09bf40",
+			"Rev": "b09bf408520f7646e29b7033d9adb00ed779a1c4"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/logutils",
+			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "48ab6605c66ac797e07f615101c3e9e10e932b66"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "a396ed22fc049df733440d90efe17475e3929ccb"
+		},
+		{
+			"ImportPath": "github.com/umisama/go-regexpcache",
+			"Rev": "2444a542492f4c52d942f48cf0727438cae6287f"
+		}
+	]
+}
