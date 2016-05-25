@@ -14,8 +14,7 @@ type Config struct {
 }
 
 type ServerConf struct {
-	Iface  string
-	Driver string
+	Iface, Driver, Backend string
 	//ReadTimeout  int `toml:"read_timeout"`
 	//WriteTimeout int `toml:"write_timeout"`
 }

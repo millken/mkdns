@@ -1,0 +1,5 @@
+@       3600    SOA  {"mname": "ns1.test3.com.", "nname": "dns-admin.test3.com.", "serial": 305419896, "refresh": 1193046,"retry": 624485, "expire": 4913, "minttl": 38933}
+
+@ 600 NS {"record":["ns1.test3.com.", "ns2.test3.com."]}
+ns1  300    A  {"records" : [{"record": ["11.27.24.10"]}]}
+ns2  300    A  {"records" : [{"record": ["11.27.24.10"]}]}

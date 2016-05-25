@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -25,8 +24,6 @@ type server struct {
 	txChan        chan PacketLayer
 	rxChan        chan gopacket.Packet
 	//handler          *Handler
-	//rTimeout time.Duration
-	//wTimeout time.Duration
 }
 
 func NewServer(config *Config) *server {
@@ -107,7 +104,6 @@ func (s *server) sendPackets() {
 			p.tcp.SetNetworkLayerForChecksum(p.ipv4)
 			gopacket.SerializeLayers(buf, opts, p.ethernet, p.ipv4, p.tcp, gopacket.Payload(out))
 		}
-		log.Printf("[DEBUG] ---- rawPacket ----\n%v\n", hex.Dump(buf.Bytes()))
 		err = s.io.WritePacketData(buf.Bytes())
 		if err != nil {
 			log.Fatal(err)

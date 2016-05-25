@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/gopacket/examples/util"
 	"github.com/hashicorp/logutils"
+	"github.com/millken/mkdns/backends"
 )
 
 var VERSION string = "2.0.0"
@@ -43,6 +44,16 @@ func main() {
 	log.Printf("[INFO] Loading config : %s, version: %s", *configPath, VERSION)
 
 	log.Printf("[DEBUG] config= %v , level=%s", config, config.Log.Level)
+
+	//load backend
+	backend, err := backends.Open(config.Server.Backend)
+	if err != nil {
+		log.Fatalf("backend open error : %s", err)
+	}
+	err = backend.Load()
+	if err != nil {
+		log.Fatalf("backend load error : %s", err)
+	}
 	server := NewServer(nil)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)
