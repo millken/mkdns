@@ -39,6 +39,10 @@ build:
 	godep go build
 	@echo "You can now execute ./mkdns"
 
+update-deps:
+	go get -v -u
+	godep update ...
+
 release: assets
 	gox -osarch="darwin/amd64 darwin/386 linux/amd64 linux/386 windows/amd64 windows/386" -output="./bin/mkdns_{{.OS}}_{{.Arch}}"
 

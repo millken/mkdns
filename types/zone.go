@@ -152,7 +152,7 @@ func (z *Zone) ParseBody(data []byte) (err error) {
 
 func (z *Zone) parseLine(line int, text string) (record *OrigRecord, err error) {
 	var dtype uint16
-	log.Printf("[FINE] line[%d] = [%s]", line, text)
+	//log.Printf("[FINE] line[%d] = [%s]", line, text)
 	textlist := strings.SplitN(text, " ", 4)
 	if len(textlist) < 4 {
 		return nil, errors.New("line formart error")
@@ -216,7 +216,7 @@ func (z *Zone) setSoaRR(ttl int, conf map[string]interface{}) {
 		Expire:  uint32(conf["expire"].(uint64)),
 		Minttl:  uint32(conf["minttl"].(uint64)),
 	}
-	log.Printf("[FINE] zone : %s, SOA=%s", z.Name, z.Soa)
+	//log.Printf("[FINE] zone : %s, SOA=%s", z.Name, z.Soa)
 }
 
 func (z *Zone) setNsRR(ttl int, value map[string]interface{}) {

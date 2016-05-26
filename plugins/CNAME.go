@@ -24,20 +24,7 @@ func (this *RecordCNAMEPlugin) New(edns, remote net.IP, rr_header dns.RR_Header)
 }
 
 func (this *RecordCNAMEPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	//log.Printf("conf : %+v", conf)
-	var records []interface{}
-	var ok bool
-	this.Conf = conf
-	if _, ok = conf["type"]; !ok {
-		if _, ok = this.Conf["records"]; ok {
-			records = this.Conf["records"].([]interface{})
-		}
-	} else {
-		records = this.Conf["records"].([]interface{})
-		record_type := conf["type"].(uint64)
-		br := newBaseRecords(this.Addr, record_type, records)
-		records = br.GetRecords()
-	}
+	records := getBaseRecord(this.Addr, conf)
 	return this.NormalRecord(records)
 }
 

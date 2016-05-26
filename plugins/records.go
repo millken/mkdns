@@ -145,6 +145,21 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 	return
 }
 
+func getBaseRecord(addr net.IP, cf map[string]interface{}) (records []interface{}) {
+	var ok bool
+	if _, ok = cf["type"]; !ok {
+		if _, ok = cf["records"]; ok {
+			records = cf["records"].([]interface{})
+		}
+	} else {
+		records = cf["records"].([]interface{})
+		record_type := cf["type"].(uint64)
+		br := newBaseRecords(addr, record_type, records)
+		records = br.GetRecords()
+	}
+	return
+}
+
 func getProofRecord(record interface{}) (result []interface{}, err error) {
 	var rv map[string]interface{}
 

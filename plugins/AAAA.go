@@ -25,48 +25,23 @@ func (this *RecordAAAAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) 
 }
 
 func (this *RecordAAAAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	//log.Printf("conf : %+v", conf)
-	var records []interface{}
-	var ok bool
-	this.Conf = conf
-	if _, ok = conf["type"]; !ok {
-		if _, ok = this.Conf["records"]; ok {
-			records = this.Conf["records"].([]interface{})
-		}
-	} else {
-		records = this.Conf["records"].([]interface{})
-		record_type := conf["type"].(uint64)
-		br := newBaseRecords(this.Addr, record_type, records)
-		records = br.GetRecords()
-	}
+	records := getBaseRecord(this.Addr, conf)
 	return this.NormalRecord(records)
 }
 
 func (this *RecordAAAAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
-	var ok bool
-	var vv map[string]interface{}
-	var vvv []interface{}
-	for _, v := range records {
-		switch vt := v.(type) {
-		case map[string]interface{}:
-			vv = v.(map[string]interface{})
-		default:
-			log.Printf("[WARING] records struct not an map[string]interface{} : %s", vt)
-		}
-		if _, ok = vv["record"]; !ok {
-			log.Printf("[WARING] record key not exit")
+	var r []interface{}
+	var e error
+	for _, record := range records {
+		r, e = getProofRecord(record)
+		if e != nil {
+			err = e
 			continue
 		}
-		switch vt := vv["record"].(type) {
-		case []interface{}:
-			vvv = vv["record"].([]interface{})
-		default:
-			log.Printf("[WARING] records value not an list : %s", vt)
-		}
-		for _, vvvv := range vvv {
-			ip := net.ParseIP(strings.TrimSpace(vvvv.(string)))
+		for _, v := range r {
+			ip := net.ParseIP(strings.TrimSpace(v.(string)))
 			if ip == nil {
-				log.Printf("[ERROR] %s is not ipv6", strings.TrimSpace(vvvv.(string)))
+				log.Printf("[ERROR] %s is not ipv6", strings.TrimSpace(v.(string)))
 				continue
 			}
 			answer = append(answer, &dns.AAAA{

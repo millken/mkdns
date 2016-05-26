@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -17,6 +18,11 @@ func main() {
 	var (
 		configPath = flag.String("c", "config.toml", "config path")
 	)
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("panic ->>>> %s", err)
+		}
+	}()
 	defer util.Run()()
 
 	if os.Geteuid() != 0 {
