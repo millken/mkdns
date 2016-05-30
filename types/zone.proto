@@ -1,0 +1,38 @@
+syntax = "proto3";
+package types;
+
+
+message RecordPb {
+	 string name = 1;
+	 int32 ttl = 2;
+	enum Type {
+		SOA = 0;
+		NS = 1;
+		A = 2;
+	}
+	Type type = 3;
+	message Value {
+		repeated string record = 1;
+		string view = 2;
+    	int32 weight = 3;
+		string continent = 4;
+		string country = 5;
+		message SOA {
+			string mname = 1;
+			string nname = 2;
+			int32 serial = 3;
+			int32 refresh = 4;
+			int32 retry = 5;
+			int32 expire = 6;
+			int32 minttl = 7;
+		}
+		SOA soa = 6;
+  	}
+	repeated Value value = 4;
+	
+}
+
+message ZonePb {
+         string name = 1;
+        repeated RecordPb records = 2;
+}
