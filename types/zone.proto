@@ -6,9 +6,17 @@ message RecordPb {
 	 string name = 1;
 	 int32 ttl = 2;
 	enum Type {
-		SOA = 0;
-		NS = 1;
-		A = 2;
+		UNKNOW = 0;
+		SOA = 1;
+		NS = 2;
+		A = 3;
+		CNAME = 4;
+		MX = 5;
+		TXT = 6;
+		AAAA = 7;
+		SRV = 8;
+		PTR = 9;
+		ALIAS = 10;
 	}
 	Type type = 3;
 	message Value {
@@ -17,7 +25,7 @@ message RecordPb {
     	int32 weight = 3;
 		string continent = 4;
 		string country = 5;
-		message SOA {
+		message Soa {
 			string mname = 1;
 			string nname = 2;
 			int32 serial = 3;
@@ -26,9 +34,10 @@ message RecordPb {
 			int32 expire = 6;
 			int32 minttl = 7;
 		}
-		SOA soa = 6;
+		Soa soa = 6;
   	}
-	repeated Value value = 4;
+	int32 state = 4; //xor, 1 : weight, 2: view, 4: geo
+	repeated Value value = 5;
 	
 }
 

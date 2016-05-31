@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"sync"
+	"strings"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/millken/mkdns/types"
+	"github.com/streamrail/concurrent-map"
+	"github.com/zvelo/ttlru"
 )
 
 type Backend interface {
@@ -16,10 +19,10 @@ type Backend interface {
 }
 
 var (
-	backends      = map[string]func(*url.URL) (Backend, error){}
-	zones         map[string]*types.Zone
-	zonesLock     = new(sync.RWMutex)
-	lastReadZones time.Time
+	backends  = map[string]func(*url.URL) (Backend, error){}
+	zones     map[string]*types.Zone
+	zonemap   = cmap.New()
+	zonecache = ttlru.New(500, 600*time.Second)
 )
 
 func Open(rawUrl string) (backend Backend, err error) {
@@ -47,7 +50,19 @@ func Register(name string, backend func(*url.URL) (Backend, error)) {
 }
 
 func GetZones() map[string]*types.Zone {
-	zonesLock.RLock()
-	defer zonesLock.RUnlock()
 	return zones
+}
+
+func GetRecords(domain string) (record []*types.RecordPb, err error) {
+	darr := dns.SplitDomainName(domain)
+	for i := len(darr) - 1; i >= 0; i-- {
+		qarr := darr[i:]
+		qkey := strings.Join(qarr, ".")
+		if tmp, ok := zonemap.Get(qkey); ok {
+			record = tmp.([]*types.RecordPb)
+			return
+		}
+	}
+	err = fmt.Errorf("record not found")
+	return
 }

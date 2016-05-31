@@ -1,6 +1,9 @@
 package types
 
-func (z *Zone) DecodeByProtobuff(data []byte) (err error) {
-	records := make(Records)
-	regexp_records := make(Records)
+import "github.com/golang/protobuf/proto"
+
+func DecodeByProtobuff(data []byte) (zpb ZonePb, err error) {
+	zpb = ZonePb{}
+	err = proto.Unmarshal(data, &zpb)
+	return
 }

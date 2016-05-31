@@ -20,6 +20,11 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 		req := p.dns
 		q := req.Question[0]
 		domain := strings.ToLower(q.Name)
+		records, err := backends.GetRecords(domain)
+		if err != nil {
+			log.Printf("[WARN] %s %s", domain, err)
+		}
+		log.Printf("%+v", records)
 		zone := getZone(domain)
 		m := new(dns.Msg)
 		if req != nil {
