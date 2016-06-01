@@ -38,21 +38,24 @@ func (f *FileBackend) walk(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("[ERROR] read file [%s] err: %s", path, err)
 		} else {
-			zpb, err := types.DecodeByProtobuff(content)
+			dpb, err := types.DecodeByProtobuff(content)
 			if err != nil {
 				log.Printf("[ERROR] DecodeByProtobuf[%s] err: %s", path, err)
+			} else {
+				name := fi.Name()
+				if dpb.Domain != "" {
+					name = dpb.Domain
+				}
+				zonemap.Set(name, content)
 			}
-			zonemap.Set(zpb.Name, zpb.Records)
-			log.Printf("[FINE] %+v", zpb)
 		}
 	}
 	return nil
 }
 
-func (f *FileBackend) Load() error {
+func (f *FileBackend) Load() {
 	log.Printf("[INFO] loading root : %s", f.root)
 	filepath.Walk(f.root, f.walk)
-	return nil
 }
 
 func (f *FileBackend) Watch() {

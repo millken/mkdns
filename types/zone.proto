@@ -1,10 +1,9 @@
 syntax = "proto3";
 package types;
 
-
-message RecordPb {
-	 string name = 1;
-	 int32 ttl = 2;
+message Record {
+	string name = 1;
+	int32 ttl = 2;
 	enum Type {
 		UNKNOW = 0;
 		SOA = 1;
@@ -28,11 +27,11 @@ message RecordPb {
 		message Soa {
 			string mname = 1;
 			string nname = 2;
-			int32 serial = 3;
-			int32 refresh = 4;
-			int32 retry = 5;
-			int32 expire = 6;
-			int32 minttl = 7;
+			uint32 serial = 3;
+			uint32 refresh = 4;
+			uint32 retry = 5;
+			uint32 expire = 6;
+			uint32 minttl = 7;
 		}
 		Soa soa = 6;
   	}
@@ -41,7 +40,8 @@ message RecordPb {
 	
 }
 
-message ZonePb {
-         string name = 1;
-        repeated RecordPb records = 2;
+message Records {
+         string domain = 1;
+        repeated Record records = 2;
 }
+

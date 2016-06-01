@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/millken/mkdns/types"
 )
 
 /*
@@ -145,7 +147,7 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 	return
 }
 
-func getBaseRecord(addr net.IP, cf map[string]interface{}) (records []interface{}) {
+func getBaseRecord(state int32, addr net.IP, rv []*types.Record_Value) (records []interface{}) {
 	var ok bool
 	if _, ok = cf["type"]; !ok {
 		if _, ok = cf["records"]; ok {

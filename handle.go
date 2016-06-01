@@ -7,7 +7,6 @@ import (
 	"github.com/google/gopacket"
 	"github.com/miekg/dns"
 	"github.com/millken/mkdns/backends"
-	"github.com/millken/mkdns/types"
 )
 
 func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
@@ -20,12 +19,12 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 		req := p.dns
 		q := req.Question[0]
 		domain := strings.ToLower(q.Name)
-		records, err := backends.GetRecords(domain)
+		zz, err := backends.GetRecords(domain)
 		if err != nil {
 			log.Printf("[WARN] %s %s", domain, err)
 		}
-		log.Printf("%+v", records)
-		zone := getZone(domain)
+		log.Printf("zz : %+v", zz)
+
 		m := new(dns.Msg)
 		if req != nil {
 			m.SetReply(req)
@@ -35,21 +34,21 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 			m.SetEdns0(4096, e.Do())
 		}
 
-		var zone_name string
-		if zone == nil {
-			zone_name = "NULL"
+		var zname string
+		if zz == nil {
+			zname = "NULL"
 		} else {
-			zone_name = zone.Name
+			zname = zz.Name
 		}
-		log.Printf("[DEBUG] [zone %s] incoming %s %s %d from %s", zone_name, req.Question[0].Name,
+		log.Printf("[DEBUG] [zone %s] incoming %s %s %d from %s", zname, req.Question[0].Name,
 			dns.TypeToString[q.Qtype], req.MsgHdr.Id, p.ipv4.SrcIP)
 
-		if zone == nil {
+		if zz == nil {
 			m.SetRcode(req, dns.RcodeNameError)
 		} else {
 
-			zone.Options.EdnsAddr = nil
-			zone.Options.RemoteAddr = p.ipv4.SrcIP
+			zz.Options.EdnsAddr = nil
+			zz.Options.RemoteAddr = p.ipv4.SrcIP
 
 			//var edns *dns.EDNS0_SUBNET
 			//var opt_rr *dns.OPT
@@ -66,7 +65,7 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 							//log.Printf("[DEBUG] Got edns", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
 							if e.Address != nil {
 								//edns = e
-								zone.Options.EdnsAddr = e.Address
+								zz.Options.EdnsAddr = e.Address
 							}
 						}
 					}
@@ -85,29 +84,16 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 					}
 				}
 			}
-			m, err = zone.FindRecord(req)
+			m, err = zz.FindRecord(req)
 			if err != nil {
-				m.Ns = append(m.Ns, zone.SoaRR())
+				m.Ns = append(m.Ns, zz.SoaRR())
 				log.Printf("[ERROR] zone error : %s", err)
 			} else {
-				m.Ns = zone.NsRR()
+				m.Ns = zz.NsRR()
 			}
 		}
 		m.Authoritative = true
 		p.dns = m
 		out <- p
 	}
-}
-
-func getZone(domain string) *types.Zone {
-	zones := backends.GetZones()
-	darr := dns.SplitDomainName(domain)
-	for i := len(darr) - 1; i >= 0; i-- {
-		qarr := darr[i:]
-		qkey := strings.Join(qarr, ".")
-		if zone, ok := zones[qkey]; ok {
-			return zone
-		}
-	}
-	return nil
 }

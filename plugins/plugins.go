@@ -6,11 +6,12 @@ import (
 	"net"
 
 	"github.com/miekg/dns"
+	"github.com/millken/mkdns/types"
 )
 
 type Plugin interface {
 	New(edns, remote net.IP, rr_header dns.RR_Header)
-	Filter(conf map[string]interface{}) ([]dns.RR, error)
+	Filter(rv []*types.Record_Value) ([]dns.RR, error)
 }
 
 var plugins_type = make(map[string]uint16)
@@ -45,14 +46,4 @@ func Get(recordType uint16) interface{} {
 		return plug.(Plugin)
 	}
 	return nil
-}
-
-func Filter(recordType uint16, config map[string]interface{}) (resp []dns.RR, err error) {
-	if plugin, ok := plugins_list[recordType]; ok {
-
-		plug := plugin()
-
-		return plug.(Plugin).Filter(config)
-	}
-	return nil, fmt.Errorf("plugin: %d not register", recordType)
 }

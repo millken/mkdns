@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/millken/mkdns/types"
 )
 
 type RecordAPlugin struct {
 	Addr     net.IP
 	RRheader dns.RR_Header
-	Conf     map[string]interface{}
 }
 
 func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
@@ -24,12 +24,12 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	this.RRheader = rr_header
 }
 
-func (this *RecordAPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	records := getBaseRecord(this.Addr, conf)
+func (this *RecordAPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
+	records := getBaseRecord(state, this.Addr, rv)
 	return this.NormalRecord(records)
 }
 
-func (this *RecordAPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
+func (this *RecordAPlugin) NormalRecord(rv []*types.Record_Value) (answer []dns.RR, err error) {
 	var r []interface{}
 	var e error
 	for _, record := range records {
