@@ -33,7 +33,6 @@ func NewFileBackend(u *url.URL) (Backend, error) {
 
 func (f *FileBackend) walk(path string, fi os.FileInfo, err error) error {
 	if fi.IsDir() == false {
-		log.Printf("[DEBUG] path=%s", path)
 		content, err := ioutil.ReadFile(path)
 		if err != nil {
 			log.Printf("[ERROR] read file [%s] err: %s", path, err)
@@ -47,6 +46,7 @@ func (f *FileBackend) walk(path string, fi os.FileInfo, err error) error {
 					name = dpb.Domain
 				}
 				zonemap.Set(name, content)
+				log.Printf("[DEBUG] path=%s, name=%s, dpb = %+v", path, name, dpb)
 			}
 		}
 	}

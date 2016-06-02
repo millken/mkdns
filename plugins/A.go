@@ -25,28 +25,18 @@ func (this *RecordAPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 }
 
 func (this *RecordAPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
-	records := getBaseRecord(state, this.Addr, rv)
-	return this.NormalRecord(records)
-}
-
-func (this *RecordAPlugin) NormalRecord(rv []*types.Record_Value) (answer []dns.RR, err error) {
-	var r []interface{}
-	var e error
-	for _, record := range records {
-		r, e = getProofRecord(record)
-		if e != nil {
-			err = e
-			continue
-		}
-		for _, v := range r {
-			ip := net.ParseIP(strings.TrimSpace(v.(string)))
+	rv = getBaseRecord(state, this.Addr, rv)
+	for _, r := range rv {
+		for _, v := range r.Record {
+			ip := net.ParseIP(strings.TrimSpace(v))
 			if ip == nil {
-				log.Printf("[ERROR] %s is not ipv4", strings.TrimSpace(v.(string)))
+				log.Printf("[ERROR] %s is not ipv4", strings.TrimSpace(v))
 				continue
 			}
 			answer = append(answer, &dns.A{
 				Hdr: this.RRheader,
-				A:   ip})
+				A:   ip,
+			})
 		}
 	}
 	return

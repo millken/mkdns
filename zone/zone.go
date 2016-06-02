@@ -24,6 +24,7 @@ type Soa struct {
 }
 
 type ZoneRecord struct {
+	State int32
 	Ttl   int
 	Value []*types.Record_Value
 }
@@ -93,7 +94,7 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 			if dtype == dns.TypeSOA {
 				z.setSoaRR(r.Ttl, r.Value[0].Soa)
 			} else if dtype == dns.TypeNS {
-				z.setNsRR(r.Ttl, r.Value)
+				z.setNsRR(r.Ttl, r.State, r.Value)
 			}
 		}
 		name, err := punycode.ToASCII(r.Name)
@@ -106,11 +107,13 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 		}
 		if strings.Contains(name, "*") {
 			z.Regexp[zk] = &ZoneRecord{
+				State: r.State,
 				Ttl:   int(r.Ttl),
 				Value: r.Value,
 			}
 		} else {
 			z.Records[zk] = &ZoneRecord{
+				State: r.State,
 				Ttl:   int(r.Ttl),
 				Value: r.Value,
 			}
@@ -120,7 +123,7 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 	return nil
 }
 
-func (z *Zone) setNsRR(ttl int32, rv []*types.Record_Value) {
+func (z *Zone) setNsRR(ttl int32, state int32, rv []*types.Record_Value) {
 	rr_header := dns.RR_Header{
 		Name:   z.Name + ".",
 		Rrtype: dns.TypeNS,
@@ -133,7 +136,7 @@ func (z *Zone) setNsRR(ttl int32, rv []*types.Record_Value) {
 		return
 	}
 	plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
-	z.Ns, _ = plugin.Filter(rv)
+	z.Ns, _ = plugin.Filter(state, rv)
 }
 
 func (z *Zone) SoaRR() dns.RR {
@@ -192,18 +195,9 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			return
 		}
 		plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
-		//m.Answer, err = plugin.Filter(record.Value)
-		/*
-				switch rrtype {
-				case dns.TypeA:
-					ip := net.ParseIP(strings.TrimSpace("1.1.1.1"))
-					answer = &dns.A{rr_header, ip}
-				}
-				m.Answer = append(m.Answer, answer)
-			}
-		*/
+		m.Answer, err = plugin.Filter(record.State, record.Value)
+
 	} else {
-		log.Printf("[WARING] record not found[%s] : %s", q.Name, dns.TypeToString[q.Qtype])
 		err = fmt.Errorf("record not foud :%s=>%s", dns.TypeToString[q.Qtype], q.Name)
 	}
 	return

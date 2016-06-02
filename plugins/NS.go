@@ -19,11 +19,7 @@ func (this *RecordNSPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	this.RRheader = rr_header
 }
 
-func (this *RecordNSPlugin) Filter(rv []*types.Record_Value) (answer []dns.RR, err error) {
-	return this.NormalRecord(rv)
-}
-
-func (this *RecordNSPlugin) NormalRecord(rv []*types.Record_Value) (answer []dns.RR, err error) {
+func (this *RecordNSPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
 	for _, r := range rv {
 		for _, v := range r.Record {
 			answer = append(answer, &dns.NS{

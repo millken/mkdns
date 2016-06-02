@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/millken/mkdns/types"
 )
 
 type RecordCNAMEPlugin struct {
 	Addr     net.IP
 	RRheader dns.RR_Header
-	Conf     map[string]interface{}
 }
 
 func (this *RecordCNAMEPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
@@ -23,25 +23,14 @@ func (this *RecordCNAMEPlugin) New(edns, remote net.IP, rr_header dns.RR_Header)
 	this.RRheader = rr_header
 }
 
-func (this *RecordCNAMEPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	records := getBaseRecord(this.Addr, conf)
-	return this.NormalRecord(records)
-}
-
-func (this *RecordCNAMEPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
-	var r []interface{}
-	var e error
-	for _, record := range records {
-		r, e = getProofRecord(record)
-		if e != nil {
-			err = e
-			continue
-		}
-		for _, v := range r {
-			value := strings.TrimSpace(v.(string))
+func (this *RecordCNAMEPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
+	rv = getBaseRecord(state, this.Addr, rv)
+	for _, r := range rv {
+		for _, v := range r.Record {
 			answer = append(answer, &dns.CNAME{
 				Hdr:    this.RRheader,
-				Target: dns.Fqdn(value)})
+				Target: strings.TrimSpace(v),
+			})
 		}
 	}
 	return

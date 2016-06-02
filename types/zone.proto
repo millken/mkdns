@@ -34,10 +34,10 @@ message Record {
 			uint32 minttl = 7;
 		}
 		Soa soa = 6;
+		int32 preference = 7;
   	}
 	int32 state = 4; //xor, 1 : weight, 2: view, 4: geo
-	repeated Value value = 5;
-	
+	repeated Value value = 5;	
 }
 
 message Records {

@@ -11,7 +11,7 @@ import (
 
 type Plugin interface {
 	New(edns, remote net.IP, rr_header dns.RR_Header)
-	Filter(rv []*types.Record_Value) ([]dns.RR, error)
+	Filter(state int32, rv []*types.Record_Value) ([]dns.RR, error)
 }
 
 var plugins_type = make(map[string]uint16)

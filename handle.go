@@ -40,7 +40,7 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 		} else {
 			zname = zz.Name
 		}
-		log.Printf("[DEBUG] [zone %s] incoming %s %s %d from %s", zname, req.Question[0].Name,
+		log.Printf("[FINE] [zone %s] incoming %s %s %d from %s", zname, req.Question[0].Name,
 			dns.TypeToString[q.Qtype], req.MsgHdr.Id, p.ipv4.SrcIP)
 
 		if zz == nil {
