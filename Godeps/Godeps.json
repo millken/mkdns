@@ -17,6 +17,10 @@
 			"Rev": "07cea4480daa3f28edd2856f2a0490fbe83842eb"
 		},
 		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "9e6977f30c91c78396e719e164e57f9287fff42c"
+		},
+		{
 			"ImportPath": "github.com/google/gopacket",
 			"Comment": "v1.1.11-115-gb09bf40",
 			"Rev": "b09bf408520f7646e29b7033d9adb00ed779a1c4"
@@ -45,12 +49,20 @@
 			"Rev": "48ab6605c66ac797e07f615101c3e9e10e932b66"
 		},
 		{
-			"ImportPath": "github.com/ugorji/go/codec",
-			"Rev": "a396ed22fc049df733440d90efe17475e3929ccb"
+			"ImportPath": "github.com/streamrail/concurrent-map",
+			"Rev": "65a174a3a4188c0b7099acbc6cfa0c53628d3287"
 		},
 		{
 			"ImportPath": "github.com/umisama/go-regexpcache",
 			"Rev": "2444a542492f4c52d942f48cf0727438cae6287f"
+		},
+		{
+			"ImportPath": "github.com/weppos/publicsuffix-go/publicsuffix",
+			"Rev": "02bbc13de4b1d263d7e214ef5e12c9c228e814e1"
+		},
+		{
+			"ImportPath": "github.com/zvelo/ttlru",
+			"Rev": "1ff19c4df505972567422e77fb5e34ba83b2366f"
 		}
 	]
 }

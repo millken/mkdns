@@ -56,10 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("backend open error : %s", err)
 	}
-	err = backend.Load()
-	if err != nil {
-		log.Fatalf("backend load error : %s", err)
-	}
+	go backend.Load()
 	server := NewServer(nil)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)

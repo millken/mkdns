@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/miekg/dns"
+	"github.com/millken/mkdns/types"
 )
 
 type RecordNSPlugin struct {
@@ -18,15 +19,14 @@ func (this *RecordNSPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 	this.RRheader = rr_header
 }
 
-func (this *RecordNSPlugin) Filter(conf map[string]interface{}) (answer []dns.RR, err error) {
-	return this.NormalRecord(conf["record"].([]interface{}))
-}
-
-func (this *RecordNSPlugin) NormalRecord(records []interface{}) (answer []dns.RR, err error) {
-	for _, v := range records {
-		answer = append(answer, &dns.NS{
-			Hdr: this.RRheader,
-			Ns:  dns.Fqdn(v.(string))})
+func (this *RecordNSPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
+	for _, r := range rv {
+		for _, v := range r.Record {
+			answer = append(answer, &dns.NS{
+				Hdr: this.RRheader,
+				Ns:  dns.Fqdn(v),
+			})
+		}
 	}
 	return
 }

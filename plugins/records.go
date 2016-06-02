@@ -1,9 +1,10 @@
 package plugins
 
 import (
-	"fmt"
 	"log"
 	"net"
+
+	"github.com/millken/mkdns/types"
 )
 
 /*
@@ -23,43 +24,35 @@ var upChooseRecord = -1
 var currentWeight int = 0
 
 type BaseRecords struct {
-	Addr    net.IP
-	Records []interface{}
-	RType   uint64
+	Addr        net.IP
+	RecordValue []*types.Record_Value
+	State       int32
 }
 
-func newBaseRecords(addr net.IP, rtype uint64, records []interface{}) *BaseRecords {
+func newBaseRecords(addr net.IP, state int32, rv []*types.Record_Value) *BaseRecords {
 	return &BaseRecords{
-		Addr:    addr,
-		Records: records,
-		RType:   rtype,
+		Addr:        addr,
+		RecordValue: rv,
+		State:       state,
 	}
 }
 
-func (this *BaseRecords) GetRecords() (answer []interface{}) {
-	var records []interface{}
-	records = this.Records
-	if this.RType&GEO == GEO {
-		records = this.GeoRecord(records)
+func (this *BaseRecords) GetRecords() (rrv []*types.Record_Value) {
+	rrv = this.RecordValue
+	if this.State&GEO == GEO {
+		rrv = this.GeoRecord(rrv)
 	}
 
-	if this.RType&WEIGHT == WEIGHT {
-		records = this.WeightRecord(records)
+	if this.State&WEIGHT == WEIGHT {
+		rrv = this.WeightRecord(rrv)
 	}
-	return records
+	return
 }
 
-func (this *BaseRecords) getMaxWeight(records []interface{}) int {
-	var ok bool
-	var w uint64
+func (this *BaseRecords) getMaxWeight(rv []*types.Record_Value) int {
 	maxweight := 0
-	for _, v := range records {
-		if _, ok = v.(map[string]interface{})["weight"]; !ok {
-			w = 0
-		} else {
-			w = v.(map[string]interface{})["weight"].(uint64)
-		}
-		weight := int(w)
+	for _, r := range rv {
+		weight := int(r.Weight)
 		if weight > maxweight {
 			maxweight = weight
 		}
@@ -67,61 +60,46 @@ func (this *BaseRecords) getMaxWeight(records []interface{}) int {
 	return maxweight
 }
 
-func (this *BaseRecords) GeoRecord(records []interface{}) (answer []interface{}) {
-	var _country, _continent string
-	var default_answer, country_answer, continent_answer []interface{}
+func (this *BaseRecords) GeoRecord(rv []*types.Record_Value) (rrv []*types.Record_Value) {
+	var default_rrv, country_rrv, continent_rrv []*types.Record_Value
 	hitContinent := false
 	hitCountry := false
 	country, continent, netmask := geoIP.GetCountry(this.Addr)
 	log.Printf("[FINE] geoip= %s, country= %s, continent=%s, netmask=%d", this.Addr, country, continent, netmask)
 
-	for _, v := range records {
-		vv := v.(map[string]interface{})
-		if _, ok := vv["country"]; ok {
-			_country = vv["country"].(string)
-		} else {
-			_country = ""
+	for _, v := range rv {
+		if v.Country == "" && v.Continent == "" {
+			default_rrv = append(default_rrv, v)
 		}
-		if _, ok := vv["continent"]; ok {
-			_continent = vv["continent"].(string)
-		} else {
-			_continent = ""
-		}
-		if _country == "" && _continent == "" {
-			default_answer = append(default_answer, v)
-		}
-		if _country != "" {
-			if _country == country {
+		if v.Country != "" {
+			if v.Country == country {
 				hitCountry = true
-				country_answer = append(country_answer, v)
+				country_rrv = append(country_rrv, v)
 			}
-		} else if _continent != "" && _continent == continent {
+		} else if v.Continent != "" && v.Continent == continent {
 			hitContinent = true
-			continent_answer = append(continent_answer, v)
+			continent_rrv = append(continent_rrv, v)
 		}
 		//log.Printf("%+v, %+v", _country, _continent)
 	}
 	if hitCountry {
-		answer = country_answer
+		rrv = country_rrv
 	} else if hitContinent {
-		answer = continent_answer
+		rrv = continent_rrv
 	} else {
-		answer = default_answer
+		rrv = default_rrv
 	}
 	return
 }
 
 //http://www.wangshangyou.com/go/126.html
-func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface{}) {
-	var ok bool
-	var w uint64
-	rlen := len(records)
+func (this *BaseRecords) WeightRecord(rv []*types.Record_Value) (rrv []*types.Record_Value) {
+	rlen := len(rv)
 	if rlen == 0 {
 		return
 	}
 
-	maxweight := this.getMaxWeight(records)
-	log.Printf("[FINE] maxweight : %d ", maxweight)
+	maxweight := this.getMaxWeight(rv)
 	for {
 		upChooseRecord = (upChooseRecord + 1) % rlen
 		if upChooseRecord == 0 {
@@ -130,14 +108,9 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 				currentWeight = maxweight
 			}
 		}
-		if _, ok = records[upChooseRecord].(map[string]interface{})["weight"]; !ok {
-			w = 0
-		} else {
-			w = records[upChooseRecord].(map[string]interface{})["weight"].(uint64)
-		}
-		if weight := int(w); weight >= currentWeight {
+		if weight := int(rv[upChooseRecord].Weight); weight >= currentWeight {
 			//log.Printf("%+v", records[upChooseRecord])
-			answer = append(answer, records[upChooseRecord])
+			rrv = append(rrv, rv[upChooseRecord])
 			break
 		}
 	}
@@ -145,38 +118,9 @@ func (this *BaseRecords) WeightRecord(records []interface{}) (answer []interface
 	return
 }
 
-func getBaseRecord(addr net.IP, cf map[string]interface{}) (records []interface{}) {
-	var ok bool
-	if _, ok = cf["type"]; !ok {
-		if _, ok = cf["records"]; ok {
-			records = cf["records"].([]interface{})
-		}
-	} else {
-		records = cf["records"].([]interface{})
-		record_type := cf["type"].(uint64)
-		br := newBaseRecords(addr, record_type, records)
-		records = br.GetRecords()
-	}
-	return
-}
+func getBaseRecord(state int32, addr net.IP, rv []*types.Record_Value) (rrv []*types.Record_Value) {
 
-func getProofRecord(record interface{}) (result []interface{}, err error) {
-	var rv map[string]interface{}
-
-	switch rt := record.(type) {
-	case map[string]interface{}:
-		rv = record.(map[string]interface{})
-	default:
-		return nil, fmt.Errorf("records struct not an map[string]interface{} : %v", rt)
-	}
-	if _, ok := rv["record"]; !ok {
-		return nil, fmt.Errorf("record not exit : %v", rv)
-	}
-	switch vt := rv["record"].(type) {
-	case []interface{}:
-		result = rv["record"].([]interface{})
-	default:
-		return nil, fmt.Errorf("records value not an list : %s", vt)
-	}
+	br := newBaseRecords(addr, state, rv)
+	rrv = br.GetRecords()
 	return
 }

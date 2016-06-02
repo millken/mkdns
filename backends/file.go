@@ -6,8 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"regexp"
-	"strings"
+	"path/filepath"
 
 	"github.com/millken/mkdns/types"
 )
@@ -17,60 +16,46 @@ func init() {
 }
 
 type FileBackend struct {
-	zonefile string
+	root string
 }
 
 func NewFileBackend(u *url.URL) (Backend, error) {
-	zfile := u.Host + u.Path
-	_, err := os.Open(zfile)
+	root := u.Host + u.Path
+	_, err := os.Open(root)
 	if err != nil {
-		return nil, fmt.Errorf("[%s]: %s", zfile, err)
+		return nil, fmt.Errorf("[%s]: %s", root, err)
 	}
 	fileBackend := &FileBackend{
-		zonefile: zfile,
+		root: root,
 	}
 	return fileBackend, nil
 }
 
-func (f *FileBackend) Load() error {
-	zoneContent, err := ioutil.ReadFile(f.zonefile)
-	if err != nil {
-		return err
-	}
-	log.Printf("[INFO] loading zone: %s", f.zonefile)
-	blists := string(zoneContent)
-	blist := strings.Split(blists, "\n")
-	reg := regexp.MustCompile(`\s+|\t+`)
-
-	temp := make(map[string]*types.Zone)
-	for _, b := range blist {
-		b = reg.ReplaceAllString(b, " ")
-		if len(b) < 1 {
-			continue
-		}
-
-		alist := strings.Split(b, " ")
-		zone := types.NewZone()
-		zone.Name = alist[0]
-		body, err := ioutil.ReadFile(alist[1])
+func (f *FileBackend) walk(path string, fi os.FileInfo, err error) error {
+	if fi.IsDir() == false {
+		content, err := ioutil.ReadFile(path)
 		if err != nil {
-			log.Printf("[ERROR] read zone file : %s, SKIPPED", err)
-			continue
+			log.Printf("[ERROR] read file [%s] err: %s", path, err)
+		} else {
+			dpb, err := types.DecodeByProtobuff(content)
+			if err != nil {
+				log.Printf("[ERROR] DecodeByProtobuf[%s] err: %s", path, err)
+			} else {
+				name := fi.Name()
+				if dpb.Domain != "" {
+					name = dpb.Domain
+				}
+				zonemap.Set(name, content)
+				log.Printf("[DEBUG] path=%s, name=%s, dpb = %+v", path, name, dpb)
+			}
 		}
-
-		err = zone.ParseBody(body)
-
-		if err != nil {
-			log.Printf("[ERROR] parse zone body : %s", err)
-			continue
-		}
-		temp[alist[0]] = zone
-
 	}
-	zonesLock.Lock()
-	zones = temp
-	zonesLock.Unlock()
 	return nil
+}
+
+func (f *FileBackend) Load() {
+	log.Printf("[INFO] loading root : %s", f.root)
+	filepath.Walk(f.root, f.walk)
 }
 
 func (f *FileBackend) Watch() {
