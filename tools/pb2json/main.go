@@ -12,7 +12,7 @@ import (
 
 func main() {
 	var err error
-	zonepb := types.ZonePb{}
+	records := types.Records{}
 	in := flag.String("in", "test.pb", "json file path")
 	out := flag.String("out", "test.json", "pb file path")
 	flag.Parse()
@@ -20,11 +20,11 @@ func main() {
 	if err != nil {
 		log.Fatalln("read json file err:", err)
 	}
-	if err := proto.Unmarshal(content, &zonepb); err != nil {
+	if err := proto.Unmarshal(content, &records); err != nil {
 		log.Fatalln("proto unmarshal error: ", err)
 	}
-	log.Printf("%+v", zonepb)
-	data, err := json.Marshal(zonepb)
+	log.Printf("%+v", records)
+	data, err := json.Marshal(records)
 	if err != nil {
 		log.Fatal("json marshal error: ", err)
 	}

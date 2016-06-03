@@ -1,5 +1,5 @@
 {
-    "name":"test.com",
+    "domain":"test.com",
     "records":[
         {
             "name":"@",

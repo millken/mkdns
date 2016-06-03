@@ -17,6 +17,11 @@
 			"Rev": "07cea4480daa3f28edd2856f2a0490fbe83842eb"
 		},
 		{
+			"ImportPath": "github.com/fsnotify/fsnotify",
+			"Comment": "v1.3.0",
+			"Rev": "30411dbcefb7a1da7e84f75530ad3abe4011b4f8"
+		},
+		{
 			"ImportPath": "github.com/golang/protobuf/proto",
 			"Rev": "9e6977f30c91c78396e719e164e57f9287fff42c"
 		},
@@ -63,6 +68,10 @@
 		{
 			"ImportPath": "github.com/zvelo/ttlru",
 			"Rev": "1ff19c4df505972567422e77fb5e34ba83b2366f"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "076b546753157f758b316e59bcb51e6807c04057"
 		}
 	]
 }

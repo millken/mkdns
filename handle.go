@@ -7,16 +7,17 @@ import (
 	"github.com/google/gopacket"
 	"github.com/miekg/dns"
 	"github.com/millken/mkdns/backends"
+	"github.com/millken/mkdns/types"
 )
 
-func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
+func packetHandler(i int, in <-chan gopacket.Packet, out chan types.PacketLayer) {
 	for packet := range in {
-		p, err := parsePacket(packet)
-		if err != nil || p.dns == nil {
+		p, err := types.ParsePacket(packet)
+		if err != nil || p.Dns == nil {
 			log.Printf("[ERROR] parsePacket %s", err)
 			continue
 		}
-		req := p.dns
+		req := p.Dns
 		q := req.Question[0]
 		domain := strings.ToLower(q.Name)
 		zz, err := backends.GetRecords(domain)
@@ -41,14 +42,14 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 			zname = zz.Name
 		}
 		log.Printf("[FINE] [zone %s] incoming %s %s %d from %s", zname, req.Question[0].Name,
-			dns.TypeToString[q.Qtype], req.MsgHdr.Id, p.ipv4.SrcIP)
+			dns.TypeToString[q.Qtype], req.MsgHdr.Id, p.Ipv4.SrcIP)
 
 		if zz == nil {
 			m.SetRcode(req, dns.RcodeNameError)
 		} else {
 
 			zz.Options.EdnsAddr = nil
-			zz.Options.RemoteAddr = p.ipv4.SrcIP
+			zz.Options.RemoteAddr = p.Ipv4.SrcIP
 
 			//var edns *dns.EDNS0_SUBNET
 			//var opt_rr *dns.OPT
@@ -93,7 +94,7 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan PacketLayer) {
 			}
 		}
 		m.Authoritative = true
-		p.dns = m
+		p.Dns = m
 		out <- p
 	}
 }

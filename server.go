@@ -11,6 +11,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/millken/mkdns/drivers"
 	"github.com/millken/mkdns/stats"
+	"github.com/millken/mkdns/types"
 )
 
 const BPFFilter = "udp and dst port 53"
@@ -21,7 +22,7 @@ type server struct {
 	stats         stats.Directional
 	isStopped     bool
 	forceQuitChan chan os.Signal
-	txChan        chan PacketLayer
+	txChan        chan types.PacketLayer
 	rxChan        chan gopacket.Packet
 	//handler          *Handler
 }
@@ -30,7 +31,7 @@ func NewServer(config *Config) *server {
 	return &server{
 		config:        config,
 		forceQuitChan: make(chan os.Signal, 1),
-		txChan:        make(chan PacketLayer),
+		txChan:        make(chan types.PacketLayer),
 		rxChan:        make(chan gopacket.Packet),
 		isStopped:     false,
 	}
@@ -71,38 +72,38 @@ func (s *server) sendPackets() {
 			FixLengths:       true,
 			ComputeChecksums: true,
 		}
-		ethMac := p.ethernet.DstMAC
-		p.ethernet.DstMAC = p.ethernet.SrcMAC
-		p.ethernet.SrcMAC = ethMac
+		ethMac := p.Ethernet.DstMAC
+		p.Ethernet.DstMAC = p.Ethernet.SrcMAC
+		p.Ethernet.SrcMAC = ethMac
 
-		ipv4SrcIp := p.ipv4.SrcIP
-		p.ipv4.SrcIP = p.ipv4.DstIP
-		p.ipv4.DstIP = ipv4SrcIp
+		ipv4SrcIp := p.Ipv4.SrcIP
+		p.Ipv4.SrcIP = p.Ipv4.DstIP
+		p.Ipv4.DstIP = ipv4SrcIp
 
-		out, err := p.dns.Pack()
+		out, err := p.Dns.Pack()
 		if err != nil {
 			log.Printf("dnsMsg Pack error :%s", err)
 		}
-		if p.udp != nil {
-			udpSrcPort := p.udp.SrcPort
-			p.udp.SrcPort = p.udp.DstPort
-			p.udp.DstPort = udpSrcPort
-			p.udp.SetNetworkLayerForChecksum(p.ipv4)
-			gopacket.SerializeLayers(buf, opts, p.ethernet, p.ipv4, p.udp, gopacket.Payload(out))
+		if p.Udp != nil {
+			udpSrcPort := p.Udp.SrcPort
+			p.Udp.SrcPort = p.Udp.DstPort
+			p.Udp.DstPort = udpSrcPort
+			p.Udp.SetNetworkLayerForChecksum(p.Ipv4)
+			gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Udp, gopacket.Payload(out))
 		}
-		if p.tcp != nil {
-			tcpSrcPort := p.tcp.SrcPort
-			p.tcp.SrcPort = p.tcp.DstPort
-			p.tcp.DstPort = tcpSrcPort
-			p.tcp.PSH = true
-			p.tcp.ACK = true
-			p.tcp.FIN = true
-			tcpSeq := p.tcp.Seq
-			p.tcp.Seq = p.tcp.Ack
-			p.tcp.Ack = tcpSeq + uint32(len(p.tcp.LayerPayload()))
-			p.tcp.Window = 0
-			p.tcp.SetNetworkLayerForChecksum(p.ipv4)
-			gopacket.SerializeLayers(buf, opts, p.ethernet, p.ipv4, p.tcp, gopacket.Payload(out))
+		if p.Tcp != nil {
+			tcpSrcPort := p.Tcp.SrcPort
+			p.Tcp.SrcPort = p.Tcp.DstPort
+			p.Tcp.DstPort = tcpSrcPort
+			p.Tcp.PSH = true
+			p.Tcp.ACK = true
+			p.Tcp.FIN = true
+			tcpSeq := p.Tcp.Seq
+			p.Tcp.Seq = p.Tcp.Ack
+			p.Tcp.Ack = tcpSeq + uint32(len(p.Tcp.LayerPayload()))
+			p.Tcp.Window = 0
+			p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
+			gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(out))
 		}
 		err = s.io.WritePacketData(buf.Bytes())
 		if err != nil {

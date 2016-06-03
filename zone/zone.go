@@ -86,7 +86,7 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 	z.Name = rs.Domain
 	for _, r := range rs.Records {
 		log.Printf("[DEBUG] P = %+v", r)
-		dtype, err = plugins.DnsType(r.Type.String())
+		dtype, err = plugins.DnsType(r.Type)
 		if err != nil {
 			return
 		}

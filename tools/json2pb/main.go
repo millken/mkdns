@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/millken/mkdns/types"
 )
@@ -20,14 +21,14 @@ func main() {
 	if err != nil {
 		log.Fatalln("read json file err:", err)
 	}
-	//fmt.Printf("json body = %s", content)
-	/*
-		err = json.Unmarshal(content, &records)
-		if err != nil {
-			log.Fatalln("json unmarshal error: ", err)
-		}
-	*/
-	jsonpb.UnmarshalString(string(content[:]), &records)
+	fmt.Printf("json body = %s", string(content[:]))
+
+	err = json.Unmarshal(content, &records)
+	if err != nil {
+		log.Fatalln("json unmarshal error: ", err)
+	}
+
+	//jsonpb.UnmarshalString(string(content[:]), &records)
 	log.Printf("%+v", records)
 	data, err := proto.Marshal(&records)
 	if err != nil {

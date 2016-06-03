@@ -15,7 +15,6 @@ import (
 
 type Backend interface {
 	Load()
-	Watch()
 }
 
 var (

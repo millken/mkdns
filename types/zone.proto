@@ -5,7 +5,7 @@ message Record {
 	string name = 1;
 	int32 ttl = 2;
 	enum Type {
-		UNKNOW = 0;
+		UNKNOWN = 0;
 		SOA = 1;
 		NS = 2;
 		A = 3;
@@ -17,7 +17,7 @@ message Record {
 		PTR = 9;
 		ALIAS = 10;
 	}
-	Type type = 3;
+	string type = 3;
 	message Value {
 		repeated string record = 1;
 		string view = 2;
