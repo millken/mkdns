@@ -48,6 +48,7 @@ func Register(name string, backend func(*url.URL) (Backend, error)) {
 }
 
 func GetRecords(domain string) (zz *zone.Zone, err error) {
+	var dbp types.Records
 	tldomain, err := publicsuffix.Domain(domain[0 : len(domain)-1])
 	if err != nil {
 		return
@@ -58,7 +59,10 @@ func GetRecords(domain string) (zz *zone.Zone, err error) {
 		return
 	}
 	if tmp, ok := zonemap.Get(tldomain); ok {
-		dbp, _ := types.DecodeByProtobuff(tmp.([]byte))
+		dbp, err = types.DecodeByProtobuff(tmp.([]byte))
+		if err != nil {
+			return nil, fmt.Errorf("%s decode protobuf err %s", tldomain, err)
+		}
 		zz = zone.New()
 		if dbp.Domain == "" {
 			dbp.Domain = tldomain

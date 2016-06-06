@@ -1,0 +1,16 @@
+[ $# -le 1 ]&&{ echo "usage: ${0} -n <num>"; exit 126;}
+while getopts "n:" OPT;do
+        case $OPT in
+                n)num=$OPTARG;;
+                *)echo "usage: $0 -n <num>"&&exit 1;;
+        esac
+done
+OF="test.com"
+for ((i=0; i<${num}; ++i))  
+do  
+    NF="test${i}.com"
+	HASH=`echo -n $NF|md5sum | cut -c1-2`
+	ND="_test/$HASH"
+	[ -d $ND ] || mkdir -p $ND
+	\cp $OF $ND/$NF 
+done  

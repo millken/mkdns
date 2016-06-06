@@ -15,6 +15,7 @@ type Config struct {
 
 type ServerConf struct {
 	Iface, Driver, Backend string
+	WorkerNum              int `toml:"worker_num"`
 	//ReadTimeout  int `toml:"read_timeout"`
 	//WriteTimeout int `toml:"write_timeout"`
 }
@@ -34,14 +35,6 @@ func LoadConfig(configPath string) (config *Config, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading config file: %s", err)
 	}
-	/*
-		config.Options = OptionsConf{
-			ReadTimeout:  3,
-			WriteTimeout: 3,
-			Listen:       []string{"127.0.0.1:53"},
-			Zones:        "mkdns.zones",
-		}
-	*/
 	if _, err = toml.Decode(string(contents), &config); err != nil {
 		return nil, fmt.Errorf("Error decoding config file: %s", err)
 	}

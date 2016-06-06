@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/millken/mkdns/types"
@@ -84,7 +85,10 @@ func (f *FileBackend) Load() {
 	log.Printf("[INFO] loading root : %s", f.root)
 	go f.watch()
 
+	start := time.Now()
 	filepath.Walk(f.root, f.walk)
+	end := time.Now()
+	log.Printf("[INFO] loaded root : %s cost time : %v\n", f.root, end.Sub(start))
 }
 
 func (f *FileBackend) watch() {
@@ -106,8 +110,15 @@ func (f *FileBackend) watch() {
 				}
 			}
 			if e.Op&fsnotify.Remove != 0 {
-				log.Printf("[DEBUG] remove dir %s from watcher", e.Name)
-				f.fsnotify.Remove(e.Name)
+				if filepath.Ext(e.Name) == "" {
+					log.Printf("[DEBUG] remove dir %s from watcher", e.Name)
+					f.fsnotify.Remove(e.Name)
+				} else {
+					fname := filepath.Base(e.Name)
+					log.Printf("[INFO] domain config removed : %s", fname)
+					zonemap.Remove(fname)
+					zonecache.Del(fname)
+				}
 			}
 
 		case e := <-f.fsnotify.Errors:

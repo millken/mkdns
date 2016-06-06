@@ -24,7 +24,6 @@ type server struct {
 	forceQuitChan chan os.Signal
 	txChan        chan types.PacketLayer
 	rxChan        chan gopacket.Packet
-	//handler          *Handler
 }
 
 func NewServer(config *Config) *server {
@@ -39,21 +38,25 @@ func NewServer(config *Config) *server {
 
 func (s *server) Start() (err error) {
 	options := &drivers.DriverOptions{
-		Device:  "enp3s0",
+		Device:  s.config.Server.Iface,
 		Snaplen: 2048,
 		Filter:  BPFFilter,
 	}
 
-	factory, ok := drivers.Drivers["libpcap"]
+	factory, ok := drivers.Drivers[s.config.Server.Driver]
 	if !ok {
 		log.Fatal(fmt.Sprintf("%s Packet driver not supported on this system", s.config.Server.Driver))
 	}
 
 	s.io, err = factory(options)
 	if err != nil {
-		return
+		return fmt.Errorf("driver: %s, interface: %s boot error: %s", s.config.Server.Driver, s.config.Server.Iface, err)
 	}
-	for i := 0; i < 1; i++ {
+	worker_num := 7
+	if s.config.Server.WorkerNum > 0 {
+		worker_num = s.config.Server.WorkerNum
+	}
+	for i := 0; i < worker_num; i++ {
 		go packetHandler(i, s.rxChan, s.txChan)
 	}
 	go s.readPackets()

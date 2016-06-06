@@ -47,6 +47,7 @@ func main() {
 		Writer:   filter_writer,
 	}
 	log.SetOutput(filter)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("[INFO] Loading config : %s, version: %s", *configPath, VERSION)
 
 	log.Printf("[DEBUG] config= %v , level=%s", config, config.Log.Level)
@@ -57,7 +58,7 @@ func main() {
 		log.Fatalf("backend open error : %s", err)
 	}
 	go backend.Load()
-	server := NewServer(nil)
+	server := NewServer(config)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)
 	}

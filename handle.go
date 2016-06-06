@@ -24,7 +24,6 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan types.PacketLayer)
 		if err != nil {
 			log.Printf("[WARN] %s %s", domain, err)
 		}
-		log.Printf("zz : %+v", zz)
 
 		m := new(dns.Msg)
 		if req != nil {
