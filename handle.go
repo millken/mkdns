@@ -14,7 +14,7 @@ func packetHandler(i int, in <-chan gopacket.Packet, out chan types.PacketLayer)
 	for packet := range in {
 		p, err := types.ParsePacket(packet)
 		if err != nil || p.Dns == nil {
-			log.Printf("[ERROR] parsePacket %s", err)
+			log.Printf("[ERROR] parsePacket : %+v", err)
 			continue
 		}
 		req := p.Dns

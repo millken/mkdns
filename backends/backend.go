@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/millken/mkdns/cache"
 	"github.com/millken/mkdns/types"
 	"github.com/millken/mkdns/zone"
-	"github.com/streamrail/concurrent-map"
 	"github.com/weppos/publicsuffix-go/publicsuffix"
 	"github.com/zvelo/ttlru"
 )
@@ -19,7 +19,7 @@ type Backend interface {
 
 var (
 	backends  = map[string]func(*url.URL) (Backend, error){}
-	zonemap   = cmap.New()
+	zonemap   = cache.NewZoneMap()
 	zonecache = ttlru.New(500, 600*time.Second)
 )
 
@@ -59,7 +59,7 @@ func GetRecords(domain string) (zz *zone.Zone, err error) {
 		return
 	}
 	if tmp, ok := zonemap.Get(tldomain); ok {
-		dbp, err = types.DecodeByProtobuff(tmp.([]byte))
+		dbp, err = types.DecodeByProtobuff(tmp)
 		if err != nil {
 			return nil, fmt.Errorf("%s decode protobuf err %s", tldomain, err)
 		}
