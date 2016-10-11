@@ -1,7 +1,9 @@
 package plugins
 
 import (
+	"log"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -24,21 +26,29 @@ func (this *RecordMXPlugin) New(edns, remote net.IP, rr_header dns.RR_Header) {
 }
 
 func (this *RecordMXPlugin) Filter(state int32, rv []*types.Record_Value) (answer []dns.RR, err error) {
-	pref := int32(5)
+	var priority int
+	var mx string
 	rv = getBaseRecord(state, this.Addr, rv)
 	for _, r := range rv {
 
-		if r.Preference > 0 {
-			pref = r.Preference
-		}
 		for _, v := range r.Record {
-			if !strings.HasSuffix(v, ".") {
-				v = v + "."
+			vv := strings.SplitN(v, " ", 2)
+			if len(vv) != 2 {
+				log.Printf("[ERROR] MX record format incorrect: %s", v)
+				continue
+			}
+			priority, err = strconv.Atoi(vv[0])
+			if err == nil {
+				priority = 5
+			}
+			mx = strings.TrimSpace(vv[1])
+			if !strings.HasSuffix(mx, ".") {
+				mx = mx + "."
 			}
 			answer = append(answer, &dns.MX{
 				Hdr:        this.RRheader,
-				Mx:         v,
-				Preference: uint16(pref),
+				Mx:         mx,
+				Preference: uint16(priority),
 			})
 		}
 	}

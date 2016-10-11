@@ -177,6 +177,30 @@
                     "country":"us"
                 }
             ]
+        },
+        {
+            "name":"spf",
+            "ttl":300,
+            "type":"SPF",
+            "value":[
+                {
+                    "record":[
+                        " v=spf1 include:spf.c3t.a -all"
+                    ]
+                }
+            ]
+        },
+        {
+            "name":"_http._tcp",
+            "ttl":300,
+            "type":"SRV",
+            "value":[
+                {
+                    "record":[
+                        "10 5 8080 www.example.com."
+                    ]
+                }
+            ]
         }
     ]
 }

@@ -15,7 +15,8 @@ message Record {
 		AAAA = 7;
 		SRV = 8;
 		PTR = 9;
-		ALIAS = 10;
+		SPF = 10;
+		ALIAS = 11;
 	}
 	string type = 3;
 	message Value {
