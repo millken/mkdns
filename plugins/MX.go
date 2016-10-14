@@ -38,7 +38,7 @@ func (this *RecordMXPlugin) Filter(state int32, rv []*types.Record_Value) (answe
 				continue
 			}
 			priority, err = strconv.Atoi(vv[0])
-			if err == nil {
+			if err != nil {
 				priority = 5
 			}
 			mx = strings.TrimSpace(vv[1])

@@ -8,10 +8,10 @@
 	1.47.46.2
 1.2.3.3
 @¬TXT*
-	AbCdFx11.0
-@¬MX*
-mx1.test.com.8*
-mx2.test.com.8A
+	AbCdFx11.2
+@¬MX*
+11 mx1.test.com.*
+12 mx2.test.com.A
 view¬A *
 	1.47.46.2
 1.2.3.3any*

@@ -7,6 +7,6 @@ backend = "file://zone.d/protobuf/"
 worker_num = 24
 
 [Log]
-level = "INFO"
+level = "DEBUG"
 #FINE|DEBUG|TRACE|INFO|WARN|ERROR"
 

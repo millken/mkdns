@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"log"
 
 	"github.com/golang/protobuf/proto"
@@ -35,18 +36,20 @@ func ParsePacket(packet gopacket.Packet) (PacketLayer, error) {
 		layer.Ipv4 = ipLayer.(*layers.IPv4)
 		log.Printf("[DEBUG] IPv4: SrcIP:  %s -> DstIP: %s", layer.Ipv4.SrcIP, layer.Ipv4.DstIP)
 	}
-
-	udpLayer := packet.Layer(layers.LayerTypeUDP)
-	if udpLayer != nil {
-		layer.Udp = udpLayer.(*layers.UDP)
-		log.Printf("[DEBUG] UDP: SrcPort:  %d -> DstPort: %d", layer.Udp.SrcPort, layer.Udp.DstPort)
+	if layer.Ipv4.Protocol == layers.IPProtocolUDP {
+		udpLayer := packet.Layer(layers.LayerTypeUDP)
+		if udpLayer != nil {
+			layer.Udp = udpLayer.(*layers.UDP)
+			log.Printf("[DEBUG] UDP: SrcPort:  %d -> DstPort: %d", layer.Udp.SrcPort, layer.Udp.DstPort)
+		}
 	}
-
-	tcpLayer := packet.Layer(layers.LayerTypeTCP)
-	if tcpLayer != nil {
-		layer.Tcp = tcpLayer.(*layers.TCP)
-		log.Printf("[DEBUG] TCP: SrcPort:  %d -> DstPort: %d", layer.Tcp.SrcPort, layer.Tcp.DstPort)
-		log.Printf("[DEBUG] TCP: SYN:  %v | ACK: %v | FIN: %v", layer.Tcp.SYN, layer.Tcp.ACK, layer.Tcp.FIN)
+	if layer.Ipv4.Protocol == layers.IPProtocolTCP {
+		tcpLayer := packet.Layer(layers.LayerTypeTCP)
+		if tcpLayer != nil {
+			layer.Tcp = tcpLayer.(*layers.TCP)
+			log.Printf("[DEBUG] TCP: SrcPort:  %d -> DstPort: %d", layer.Tcp.SrcPort, layer.Tcp.DstPort)
+			log.Printf("[DEBUG] TCP: SYN:  %v | ACK: %v | FIN: %v", layer.Tcp.SYN, layer.Tcp.ACK, layer.Tcp.FIN)
+		}
 	}
 
 	dnsLayer := packet.Layer(layers.LayerTypeDNS)
@@ -54,7 +57,7 @@ func ParsePacket(packet gopacket.Packet) (PacketLayer, error) {
 		dnsLayerMsg := dnsLayer.(*layers.DNS)
 
 		contents := dnsLayerMsg.BaseLayer.LayerContents()
-
+		log.Printf("[DEBUG] dns message: %s\n", hex.Dump(contents))
 		dnsMsg := new(dns.Msg)
 		if err := dnsMsg.Unpack(contents); err != nil {
 			return layer, err

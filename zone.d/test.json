@@ -63,15 +63,13 @@
             "value":[
                 {
                     "record":[
-                        "mx1.test.com."
-                    ],
-					"preference": 12
+                        "11 mx1.test.com."
+                    ]
                 },
                 {
                     "record":[
-                        "mx2.test.com."
-                    ],
-					"preference": 14
+                        "12 mx2.test.com."
+                    ]
                 }
             ]
         },
