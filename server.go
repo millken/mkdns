@@ -318,10 +318,10 @@ func (s *server) sendPackets() {
 				p.Tcp.ACK = true
 				p.Tcp.FIN = true
 				p.Tcp.PSH = false
-				p.Tcp.Seq = uint32(len(out) + 1)
+				p.Tcp.Seq = uint32(len(out) + 3)
 				//p.Tcp.Window = 0
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
-				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload([]byte("")))
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
 				err = s.io.WritePacketData(buf.Bytes())
 			}
 			s.stats.Tx.Packets++
