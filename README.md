@@ -20,3 +20,4 @@ https://github.com/jerome-laforge/ClientInjector/blob/master/src/cmd/ClientInjec
 https://github.com/nightcoffee/http-hijack/blob/3bc6b1ec68bab21c94ce75c868928eb7756605b4/http-hijack.go
 https://github.com/david415/HoneyBadger
 http://www.devdungeon.com/content/packet-capture-injection-and-analysis-gopacket#decoding-packet-layers
+https://github.com/grahamking/latency/blob/master/tcp.go

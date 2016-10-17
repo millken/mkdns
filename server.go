@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -78,7 +77,7 @@ func (s *server) decodePackets(worker_id int) {
 		p, err := types.ParsePacket(packet)
 		if err != nil || p.Dns == nil {
 			// response syn ->ack
-			if p.Tcp.SYN && !p.Tcp.ACK && !p.Tcp.FIN {
+			if p.Tcp != nil && p.Tcp.SYN && !p.Tcp.ACK && !p.Tcp.FIN {
 				buf := gopacket.NewSerializeBuffer()
 				opts := gopacket.SerializeOptions{
 					FixLengths:       true,
@@ -89,6 +88,7 @@ func (s *server) decodePackets(worker_id int) {
 				p.Ethernet.SrcMAC = ethMac
 
 				ipv4SrcIp := p.Ipv4.SrcIP
+				p.Ipv4.Id = 0
 				p.Ipv4.SrcIP = p.Ipv4.DstIP
 				p.Ipv4.DstIP = ipv4SrcIp
 				tcpSrcPort := p.Tcp.SrcPort
@@ -102,11 +102,11 @@ func (s *server) decodePackets(worker_id int) {
 				p.Tcp.Ack = tcpSeq + uint32(1)
 				//p.Tcp.Window = 512
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
-				out := []byte("")
-				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(out))
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
 				err = s.io.WritePacketData(buf.Bytes())
 				continue
 			}
+
 			if p.Tcp.ACK && p.Tcp.PSH {
 				applicationLayer := packet.ApplicationLayer()
 
@@ -118,6 +118,37 @@ func (s *server) decodePackets(worker_id int) {
 				}
 				log.Printf("[DEBUG] %v", dnsMsg)
 				p.Dns = dnsMsg
+			}
+
+			//response FIN && ACK
+			if p.Tcp.FIN && p.Tcp.ACK {
+				buf := gopacket.NewSerializeBuffer()
+				opts := gopacket.SerializeOptions{
+					FixLengths:       true,
+					ComputeChecksums: true,
+				}
+				ethMac := p.Ethernet.DstMAC
+				p.Ethernet.DstMAC = p.Ethernet.SrcMAC
+				p.Ethernet.SrcMAC = ethMac
+
+				ipv4SrcIp := p.Ipv4.SrcIP
+				p.Ipv4.Id = p.Ipv4.Id + 1
+				p.Ipv4.SrcIP = p.Ipv4.DstIP
+				p.Ipv4.DstIP = ipv4SrcIp
+				tcpSrcPort := p.Tcp.SrcPort
+				p.Tcp.SrcPort = p.Tcp.DstPort
+				p.Tcp.DstPort = tcpSrcPort
+				p.Tcp.FIN = false
+				p.Tcp.ACK = true
+				p.Tcp.RST = false
+				tcpSeq := p.Tcp.Seq
+				p.Tcp.Seq = p.Tcp.Ack
+				p.Tcp.Ack = tcpSeq + uint32(1)
+				//p.Tcp.Window = 512
+				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
+				err = s.io.WritePacketData(buf.Bytes())
+				continue
 			}
 			log.Printf("[ERROR] parsePacket : %+v", err)
 			if p.Dns == nil {
@@ -237,8 +268,12 @@ func (s *server) sendPackets() {
 				p.Udp.DstPort = udpSrcPort
 				p.Udp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Udp, gopacket.Payload(out))
+				log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
+				err = s.io.WritePacketData(buf.Bytes())
 			}
 			if p.Tcp != nil {
+				buf := gopacket.NewSerializeBuffer()
+				p.Ipv4.Id = p.Ipv4.Id + 1
 				tcpSrcPort := p.Tcp.SrcPort
 				p.Tcp.SrcPort = p.Tcp.DstPort
 				p.Tcp.DstPort = tcpSrcPort
@@ -255,30 +290,34 @@ func (s *server) sendPackets() {
 				p.Tcp.Ack = tcpSeq + uint32(len(p.Tcp.LayerPayload()))
 				p.Tcp.Window = 512
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
-				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload([]byte("")))
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
 				err = s.io.WritePacketData(buf.Bytes())
 
+				buf = gopacket.NewSerializeBuffer()
+				p.Ipv4.Id = p.Ipv4.Id + 1
 				p.Tcp.PSH = true
 				p.Tcp.ACK = true
 				//p.Tcp.Seq = 1
 
 				//p.Tcp.Ack = uint32(tcpassembly.Sequence(seq).Add(1))
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
-				bs := make([]byte, 2)
-				binary.BigEndian.PutUint16(bs, uint16(len(out)+2))
-				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(append(bs, out...)))
+				//bs := make([]byte, 2)
+				//binary.BigEndian.PutUint16(bs, uint16(len(out)+2))
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(out))
+				log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
+				err = s.io.WritePacketData(buf.Bytes())
 			}
-			log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
-			err = s.io.WritePacketData(buf.Bytes())
+
 			if err != nil {
 				log.Fatal(err)
 			}
 			if p.Tcp != nil {
+				p.Ipv4.Id = p.Ipv4.Id + 1
 				p.Tcp.SYN = false
 				p.Tcp.ACK = true
 				p.Tcp.FIN = true
 				p.Tcp.PSH = false
-				p.Tcp.Seq = uint32(len(out) + 3)
+				p.Tcp.Seq = uint32(len(out) + 1)
 				//p.Tcp.Window = 0
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload([]byte("")))
