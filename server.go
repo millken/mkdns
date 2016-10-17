@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -301,9 +302,9 @@ func (s *server) sendPackets() {
 
 				//p.Tcp.Ack = uint32(tcpassembly.Sequence(seq).Add(1))
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
-				//bs := make([]byte, 2)
-				//binary.BigEndian.PutUint16(bs, uint16(len(out)+2))
-				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(out))
+				bs := make([]byte, 2)
+				binary.BigEndian.PutUint16(bs, uint16(len(out)))
+				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(append(bs, out...)))
 				log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
 				err = s.io.WritePacketData(buf.Bytes())
 			}
