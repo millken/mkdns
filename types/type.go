@@ -57,7 +57,7 @@ func ParsePacket(packet gopacket.Packet) (PacketLayer, error) {
 		dnsLayerMsg := dnsLayer.(*layers.DNS)
 
 		contents := dnsLayerMsg.BaseLayer.LayerContents()
-		log.Printf("[DEBUG] dns message: %s\n", hex.Dump(contents))
+		log.Printf("[DEBUG] dns msg(%d): \n%s\n", len(contents), hex.Dump(contents))
 		dnsMsg := new(dns.Msg)
 		if err := dnsMsg.Unpack(contents); err != nil {
 			return layer, err

@@ -9,6 +9,7 @@ import (
 	"github.com/google/gopacket/examples/util"
 	"github.com/hashicorp/logutils"
 	"github.com/millken/mkdns/backends"
+	"github.com/millken/mkdns/stats"
 )
 
 var VERSION string = "2.0.0"
@@ -58,6 +59,14 @@ func main() {
 		log.Fatalf("backend open error : %s", err)
 	}
 	go backend.Load()
+	if config.Server.StatsAddr != "" {
+		go func() {
+			statsServer := stats.NewServer(config.Server.StatsAddr)
+			if err := statsServer.Run(); err != nil {
+				log.Fatalf("stats server run err: %s", err)
+			}
+		}()
+	}
 	server := NewServer(config)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)

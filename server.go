@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/tcpassembly"
 	"github.com/miekg/dns"
 	"github.com/millken/mkdns/backends"
 	"github.com/millken/mkdns/drivers"
@@ -19,12 +20,11 @@ import (
 	"github.com/millken/mkdns/types"
 )
 
-const BPFFilter = "tcp and dst port 53"
+const BPFFilter = "dst port 53"
 
 type server struct {
 	config        *Config
 	io            drivers.PacketDataSourceCloser
-	stats         stats.Directional
 	isStopped     bool
 	forceQuitChan chan os.Signal
 	txChan        chan types.PacketLayer
@@ -78,7 +78,10 @@ func (s *server) decodePackets(worker_id int) {
 		p, err := types.ParsePacket(packet)
 		if err != nil || p.Dns == nil {
 			// response syn ->ack
-			if p.Tcp != nil && p.Tcp.SYN && !p.Tcp.ACK && !p.Tcp.FIN {
+			if p.Tcp == nil {
+				continue
+			}
+			if p.Tcp.SYN && !p.Tcp.ACK && !p.Tcp.FIN {
 				buf := gopacket.NewSerializeBuffer()
 				opts := gopacket.SerializeOptions{
 					FixLengths:       true,
@@ -100,7 +103,7 @@ func (s *server) decodePackets(worker_id int) {
 				p.Tcp.RST = false
 				tcpSeq := p.Tcp.Seq
 				p.Tcp.Seq = p.Tcp.Ack
-				p.Tcp.Ack = tcpSeq + uint32(1)
+				p.Tcp.Ack = uint32(tcpassembly.Sequence(tcpSeq).Add(1))
 				//p.Tcp.Window = 512
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
@@ -117,7 +120,6 @@ func (s *server) decodePackets(worker_id int) {
 					log.Printf("unpack dns error : %s, str: %s", err, hex.Dump(applicationLayer.Payload()))
 					continue
 				}
-				log.Printf("[DEBUG] %v", dnsMsg)
 				p.Dns = dnsMsg
 			}
 
@@ -133,7 +135,7 @@ func (s *server) decodePackets(worker_id int) {
 				p.Ethernet.SrcMAC = ethMac
 
 				ipv4SrcIp := p.Ipv4.SrcIP
-				p.Ipv4.Id = p.Ipv4.Id + 1
+				//p.Ipv4.Id = p.Ipv4.Id + 1
 				p.Ipv4.SrcIP = p.Ipv4.DstIP
 				p.Ipv4.DstIP = ipv4SrcIp
 				tcpSrcPort := p.Tcp.SrcPort
@@ -144,7 +146,7 @@ func (s *server) decodePackets(worker_id int) {
 				p.Tcp.RST = false
 				tcpSeq := p.Tcp.Seq
 				p.Tcp.Seq = p.Tcp.Ack
-				p.Tcp.Ack = tcpSeq + uint32(1)
+				p.Tcp.Ack = uint32(tcpassembly.Sequence(tcpSeq).Add(1))
 				//p.Tcp.Window = 512
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
@@ -185,7 +187,8 @@ func (s *server) decodePackets(worker_id int) {
 		if zz == nil {
 			m.SetRcode(req, dns.RcodeNameError)
 		} else {
-
+			counterKey := fmt.Sprintf("%s:%s", zz.Name, dns.TypeToString[q.Qtype])
+			stats.NewCounter(counterKey).Add(1)
 			zz.Options.EdnsAddr = nil
 			zz.Options.RemoteAddr = p.Ipv4.SrcIP
 
@@ -269,12 +272,11 @@ func (s *server) sendPackets() {
 				p.Udp.DstPort = udpSrcPort
 				p.Udp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Udp, gopacket.Payload(out))
-				log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
 				err = s.io.WritePacketData(buf.Bytes())
 			}
 			if p.Tcp != nil {
 				buf := gopacket.NewSerializeBuffer()
-				p.Ipv4.Id = p.Ipv4.Id + 1
+				//p.Ipv4.Id = p.Ipv4.Id + 1
 				tcpSrcPort := p.Tcp.SrcPort
 				p.Tcp.SrcPort = p.Tcp.DstPort
 				p.Tcp.DstPort = tcpSrcPort
@@ -289,13 +291,13 @@ func (s *server) sendPackets() {
 				tcpSeq := p.Tcp.Seq
 				p.Tcp.Seq = p.Tcp.Ack
 				p.Tcp.Ack = tcpSeq + uint32(len(p.Tcp.LayerPayload()))
-				p.Tcp.Window = 512
+				//p.Tcp.Window = 512
 				p.Tcp.SetNetworkLayerForChecksum(p.Ipv4)
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
 				err = s.io.WritePacketData(buf.Bytes())
 
 				buf = gopacket.NewSerializeBuffer()
-				p.Ipv4.Id = p.Ipv4.Id + 1
+				//p.Ipv4.Id = p.Ipv4.Id + 1
 				p.Tcp.PSH = true
 				p.Tcp.ACK = true
 				//p.Tcp.Seq = 1
@@ -305,7 +307,6 @@ func (s *server) sendPackets() {
 				bs := make([]byte, 2)
 				binary.BigEndian.PutUint16(bs, uint16(len(out)))
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp, gopacket.Payload(append(bs, out...)))
-				log.Printf("[DEBUG] send buf\n%s", hex.Dump(buf.Bytes()))
 				err = s.io.WritePacketData(buf.Bytes())
 			}
 
@@ -324,8 +325,6 @@ func (s *server) sendPackets() {
 				gopacket.SerializeLayers(buf, opts, p.Ethernet, p.Ipv4, p.Tcp)
 				err = s.io.WritePacketData(buf.Bytes())
 			}
-			s.stats.Tx.Packets++
-			//d.stats.Tx.Bytes += uint64(p.Metadata().CaptureInfo.CaptureLength)
 		}
 	}
 }
@@ -342,8 +341,6 @@ func (s *server) readPackets() {
 			log.Printf("[ERROR] readPackets err: %s", err)
 			continue
 		}
-		s.stats.Rx.Packets++
-
 		s.rxChan <- packet
 		if s.isStopped {
 			break
@@ -361,10 +358,6 @@ func (s *server) Shutdown() {
 	log.Print("[INFO] stopping loop")
 	s.isStopped = true
 
-}
-
-func (s *server) Stats() stats.Directional {
-	return s.stats
 }
 
 func (s *server) signalWorker() {
