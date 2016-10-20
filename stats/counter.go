@@ -46,6 +46,12 @@ func NewCounter(key string) *Counter {
 	return c
 }
 
+func CleanCounter() {
+	cm.Lock()
+	defer cm.Unlock()
+	counters = make(map[string]*Counter)
+}
+
 func Snapshot() (c map[string]int64) {
 	cm.Lock()
 	defer cm.Unlock()

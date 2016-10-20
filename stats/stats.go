@@ -32,6 +32,9 @@ func writeJsonResponse(w http.ResponseWriter, obj interface{}, err error) error 
 }
 
 func (s *statsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "DELETE" {
+		CleanCounter()
+	}
 	w.Header().Set("Cache-Control", "must-revalidate,no-cache,no-store")
 
 	val := expvar.Get(statsVar)
