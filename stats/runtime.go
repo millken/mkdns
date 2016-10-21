@@ -1,9 +1,9 @@
 package stats
 
 import (
-	"runtime"
-	"net/http"
 	"encoding/json"
+	"net/http"
+	"runtime"
 )
 
 var memstats runtime.MemStats
@@ -25,9 +25,9 @@ func (this *runtimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	js["numgoroutine"] = runtime.NumGoroutine()
 	js["memstats"] = memstats
 	js1, err := json.Marshal(js)
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(js1))
 }

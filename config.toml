@@ -10,4 +10,5 @@ stats_addr = "127.0.0.1:3333"
 [Log]
 level = "FINE"
 #FINE|DEBUG|TRACE|INFO|WARN|ERROR"
+file = "/var/log/mkdns.log"
 

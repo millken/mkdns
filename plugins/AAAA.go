@@ -34,8 +34,8 @@ func (this *RecordAAAAPlugin) Filter(state int32, rv []*types.Record_Value) (ans
 				continue
 			}
 			answer = append(answer, &dns.AAAA{
-				Hdr: this.RRheader,
-				AAAA:   ip})
+				Hdr:  this.RRheader,
+				AAAA: ip})
 		}
 	}
 	return

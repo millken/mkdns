@@ -1,13 +1,12 @@
 language: go
 sudo: true
 go:
-  - 1.6
+  - 1.7.3
 before_install:
   - sudo apt-get install libpcap-dev libgeoip-dev -y
 install:
   - go get -v
-  - go build -v
-  - go install
+  - go build
 
 script:
   - go test 

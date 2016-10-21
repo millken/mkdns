@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/VividCortex/godaemon"
 	"github.com/google/gopacket/examples/util"
 	"github.com/hashicorp/logutils"
 	"github.com/millken/mkdns/backends"
@@ -18,6 +19,7 @@ func main() {
 	var err error
 	var (
 		configPath = flag.String("c", "config.toml", "config path")
+		isDaemon   = flag.Bool("d", false, "backgroud running")
 	)
 	defer func() {
 		if err := recover(); err != nil {
@@ -30,9 +32,12 @@ func main() {
 		log.Printf("requires root!")
 		return
 	}
+	if *isDaemon {
+		defer godaemon.Daemonize()
+	}
 	config, err := LoadConfig(*configPath)
 	if err != nil {
-		log.Printf("[ERROR] %s", err.Error())
+		log.Printf("[ERROR] LoadConfig : %s", err.Error())
 		return
 	}
 	filter_writer := os.Stderr
@@ -51,8 +56,6 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("[INFO] Loading config : %s, version: %s", *configPath, VERSION)
 
-	log.Printf("[DEBUG] config= %v , level=%s", config, config.Log.Level)
-
 	//load backend
 	backend, err := backends.Open(config.Server.Backend)
 	if err != nil {
@@ -67,6 +70,7 @@ func main() {
 			}
 		}()
 	}
+
 	server := NewServer(config)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)

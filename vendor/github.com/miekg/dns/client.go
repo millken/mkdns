@@ -5,6 +5,7 @@ package dns
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/binary"
 	"io"
 	"net"
 	"time"
@@ -38,7 +39,7 @@ type Client struct {
 }
 
 // Exchange performs a synchronous UDP query. It sends the message m to the address
-// contained in a and waits for an reply. Exchange does not retry a failed query, nor
+// contained in a and waits for a reply. Exchange does not retry a failed query, nor
 // will it fall back to TCP in case of truncation.
 // See client.Exchange for more information on setting larger buffer sizes.
 func Exchange(m *Msg, a string) (r *Msg, err error) {
@@ -92,8 +93,8 @@ func ExchangeConn(c net.Conn, m *Msg) (r *Msg, err error) {
 	return r, err
 }
 
-// Exchange performs an synchronous query. It sends the message m to the address
-// contained in a and waits for an reply. Basic use pattern with a *dns.Client:
+// Exchange performs a synchronous query. It sends the message m to the address
+// contained in a and waits for a reply. Basic use pattern with a *dns.Client:
 //
 //	c := new(dns.Client)
 //	in, rtt, err := c.Exchange(message, "127.0.0.1:53")
@@ -283,9 +284,11 @@ func (co *Conn) ReadMsgHeader(hdr *Header) ([]byte, error) {
 
 	p = p[:n]
 	if hdr != nil {
-		if _, err = UnpackStruct(hdr, p, 0); err != nil {
+		dh, _, err := unpackMsgHdr(p, 0)
+		if err != nil {
 			return nil, err
 		}
+		*hdr = dh
 	}
 	return p, err
 }
@@ -300,7 +303,7 @@ func tcpMsgLen(t io.Reader) (int, error) {
 	if n != 2 {
 		return 0, ErrShortRead
 	}
-	l, _ := unpackUint16(p, 0)
+	l := binary.BigEndian.Uint16(p)
 	if l == 0 {
 		return 0, ErrShortRead
 	}
@@ -392,7 +395,7 @@ func (co *Conn) Write(p []byte) (n int, err error) {
 			return 0, &Error{err: "message too large"}
 		}
 		l := make([]byte, 2, lp+2)
-		l[0], l[1] = packUint16(uint16(lp))
+		binary.BigEndian.PutUint16(l, uint16(lp))
 		p = append(l, p...)
 		n, err := io.Copy(w, bytes.NewReader(p))
 		return int(n), err
