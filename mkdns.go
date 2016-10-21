@@ -32,9 +32,7 @@ func main() {
 		log.Printf("requires root!")
 		return
 	}
-	if *isDaemon {
-		defer godaemon.Daemonize()
-	}
+
 	config, err := LoadConfig(*configPath)
 	if err != nil {
 		log.Printf("[ERROR] LoadConfig : %s", err.Error())
@@ -62,15 +60,23 @@ func main() {
 		log.Fatalf("backend open error : %s", err)
 	}
 	go backend.Load()
-	if config.Server.StatsAddr != "" {
+	if config.Stats.Addr != "" {
 		go func() {
-			statsServer := stats.NewServer(config.Server.StatsAddr)
+			statsServer := stats.NewServer(config.Stats.Addr)
 			if err := statsServer.Run(); err != nil {
 				log.Fatalf("stats server run err: %s", err)
 			}
 		}()
 	}
 
+	if config.Stats.AutoReport {
+		autoreport := stats.NewAutoReport(config.Stats.Url, config.Stats.Schedule)
+		autoreport.Start()
+	}
+
+	if *isDaemon {
+		defer godaemon.Daemonize()
+	}
 	server := NewServer(config)
 	if err = server.Start(); err != nil {
 		log.Printf("[ERROR] :%s", err)

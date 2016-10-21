@@ -123,6 +123,12 @@
 			"revisionTime": "2016-10-18T06:08:08Z"
 		},
 		{
+			"checksumSHA1": "PphQA6j/DEDbg3WIsdBDYALOOYs=",
+			"path": "github.com/robfig/cron",
+			"revision": "9585fd555638e77bba25f25db5c44b41f264aeb7",
+			"revisionTime": "2016-09-27T16:42:31Z"
+		},
+		{
 			"checksumSHA1": "5vnZAVE2WhK9/rqW+xb5w9rYM24=",
 			"path": "github.com/umisama/go-regexpcache",
 			"revision": "2444a542492f4c52d942f48cf0727438cae6287f",

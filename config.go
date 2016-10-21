@@ -11,12 +11,12 @@ import (
 type Config struct {
 	Server ServerConf
 	Log    LogConf
+	Stats  StatsConf
 }
 
 type ServerConf struct {
 	Iface, Driver, Backend string
-	WorkerNum              int    `toml:"worker_num"`
-	StatsAddr              string `toml:"stats_addr"`
+	WorkerNum              int `toml:"worker_num"`
 	//ReadTimeout  int `toml:"read_timeout"`
 	//WriteTimeout int `toml:"write_timeout"`
 }
@@ -24,6 +24,11 @@ type ServerConf struct {
 type LogConf struct {
 	File  string
 	Level string
+}
+
+type StatsConf struct {
+	Addr, Url, Schedule string
+	AutoReport          bool `toml:"auto_report"`
 }
 
 func LoadConfig(configPath string) (config *Config, err error) {
