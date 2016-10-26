@@ -3,7 +3,8 @@ iface = "enp3s0"
 #Interface to listen on
 driver = "libpcap"
 #Data AcQuisition packet source: pcapgo, libpcap, AF_PACKET or BSD_BPF.BSD_BPF is BSD systems only.AF_PACKET is Linux only.libpcap builds on Linux and FreeBSD and can read every kind of pcap format.pcapgo builds on every platform but does not support pcap-ng format, only pcap v2.4.
-backend = "file://zone.d/protobuf/"
+#backend = "file://zone.d/protobuf/"
+backend = "postgres://postgres:admin@127.0.0.1/dns?sslmode=disable"
 worker_num = 24
 
 [Stats]
@@ -13,7 +14,7 @@ schedule = "0 */1 * * *"
 auto_report = true
 
 [Log]
-level = "INFO"
+level = "DEBUG"
 #FINE|DEBUG|TRACE|INFO|WARN|ERROR"
-file = "/var/log/mkdns.log"
+#file = "/var/log/mkdns.log"
 
