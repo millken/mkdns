@@ -10,8 +10,8 @@ sudo ethtool -K eth0 gro off
 
 using tcp
 ```
-iptables -I OUTPUT -p tcp --tcp-flags ALL RST -j DROP
-iptables -I OUTPUT -p tcp --tcp-flags ALL RST,ACK -j DROP
+iptables -I OUTPUT -p tcp --sport 53 --tcp-flags ALL RST -j DROP
+iptables -I OUTPUT -p tcp --sport 53 --tcp-flags ALL RST,ACK -j DROP
 ```
 
 ==== Link ====

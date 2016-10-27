@@ -79,7 +79,6 @@ func (b *PostgresBackend) Load() {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			log.Printf("[INFO] asdfasdfasafa")
 
 			err = rows.Scan(&id, &domain, &value)
 			if err != nil {
