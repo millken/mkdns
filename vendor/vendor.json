@@ -123,6 +123,12 @@
 			"revisionTime": "2016-10-14T01:16:34Z"
 		},
 		{
+			"checksumSHA1": "xppHi82MLqVx1eyQmbhTesAEjx8=",
+			"path": "github.com/lib/pq/oid",
+			"revision": "ae8357db35d721c58dcdc911318b55bef6b1b001",
+			"revisionTime": "2016-10-14T01:16:34Z"
+		},
+		{
 			"checksumSHA1": "Wahi4g/9XiHhSLAJ+8jskg71PCU=",
 			"path": "github.com/miekg/dns",
 			"revision": "58f52c57ce9df13460ac68200cef30a008b9c468",
