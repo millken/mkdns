@@ -14,6 +14,10 @@ iptables -I OUTPUT -p tcp --sport 53 --tcp-flags ALL RST -j DROP
 iptables -I OUTPUT -p tcp --sport 53 --tcp-flags ALL RST,ACK -j DROP
 ```
 
+```
+CC=$(which musl-gcc) go build --ldflags '-w -linkmode external -extldflags "-static"' server.go
+
+```
 ==== Link ====
 
 https://github.com/jerome-laforge/ClientInjector/blob/master/src/cmd/ClientInjector/network/network.go
