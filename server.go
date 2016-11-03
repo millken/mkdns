@@ -153,7 +153,7 @@ func (s *server) decodePackets(worker_id int) {
 				err = s.io.WritePacketData(buf.Bytes())
 				continue
 			}
-			log.Printf("[ERROR] parsePacket : %+v", err)
+			//log.Printf("[ERROR] parsePacket : %+v", err)
 			if p.Dns == nil {
 				continue
 			}
