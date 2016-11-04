@@ -7,5 +7,5 @@ zones = "mkdns.zones"
 
 [Logging]
 file = "/var/log/mkdns.logd"
-level = "debug"
+level = "FINE"
 

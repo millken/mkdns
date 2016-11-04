@@ -2,6 +2,7 @@ package main
 
 import (
 	//"logger"
+	"log"
 	"net"
 	"strings"
 
@@ -31,7 +32,7 @@ func (h *Handler) query(Net string, w dns.ResponseWriter, req *dns.Msg) {
 	} else {
 		zone_name = zone.Name
 	}
-	logger.Debug("[zone %s] incoming %s %s %d from %s://%s", zone_name, req.Question[0].Name,
+	log.Printf("[zone %s] incoming %s %s %d from %s://%s", zone_name, req.Question[0].Name,
 		dns.TypeToString[q.Qtype], req.MsgHdr.Id, Net, w.RemoteAddr())
 
 	if zone == nil {
@@ -56,7 +57,7 @@ func (h *Handler) query(Net string, w dns.ResponseWriter, req *dns.Msg) {
 				switch e := o.(type) {
 				case *dns.EDNS0_NSID:
 				case *dns.EDNS0_SUBNET:
-					logger.Debug("Got edns", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
+					log.Printf("Got edns %s %s %d %s", e.Address, e.Family, e.SourceNetmask, e.SourceScope)
 					if e.Address != nil {
 						//edns = e
 						zone.Options.EdnsAddr = e.Address
