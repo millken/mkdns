@@ -230,7 +230,7 @@ func (s *server) decodePackets(worker_id int) {
 			if err != nil {
 				m.Ns = append(m.Ns, zz.SoaRR())
 				m.SetRcode(req, dns.RcodeNameError)
-				log.Printf("[ERROR] zone error : %s", err)
+				log.Printf("[WARN] zone[%s] : %s", zz.Name, err)
 			} else {
 				m.Ns = zz.NsRR()
 			}
