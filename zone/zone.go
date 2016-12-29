@@ -42,12 +42,13 @@ type ZoneOptions struct {
 }
 
 type Zone struct {
-	Name    string
-	Records ZoneRecords
-	Regexp  ZoneRecords
-	Soa     dns.RR
-	Ns      []dns.RR
-	Options ZoneOptions
+	Name      string
+	Records   ZoneRecords
+	Regexp    ZoneRecords
+	RegexpKey []ZoneKey
+	Soa       dns.RR
+	Ns        []dns.RR
+	Options   ZoneOptions
 }
 
 func New() *Zone {
@@ -84,6 +85,7 @@ func (z *Zone) setSoaRR(ttl int32, rvs *types.Record_Value_Soa) {
 func (z *Zone) ParseRecords(rs types.Records) (err error) {
 	var dtype uint16
 	z.Name = rs.Domain
+	hasRegexp := false
 	for _, r := range rs.Records {
 		dtype, err = plugins.DnsType(r.Type)
 		if err != nil {
@@ -105,6 +107,9 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 			Type: dtype,
 		}
 		if strings.Contains(name, "*") {
+			hasRegexp = true
+			zk.Name = strings.Replace(strings.Replace(zk.Name, "*", `\w+`, -1), ".", `\.`, -1) + "$"
+
 			z.Regexp[zk] = &ZoneRecord{
 				State: r.State,
 				Ttl:   int(r.Ttl),
@@ -115,6 +120,26 @@ func (z *Zone) ParseRecords(rs types.Records) (err error) {
 				State: r.State,
 				Ttl:   int(r.Ttl),
 				Value: r.Value,
+			}
+		}
+
+	}
+	if hasRegexp {
+		for k, _ := range z.Regexp {
+			z.RegexpKey = append(z.RegexpKey, k)
+		}
+		for i := 1; i < len(z.RegexpKey); i++ {
+			for j := 0; j < len(z.RegexpKey)-i; j++ {
+				iwL := strings.Count(z.RegexpKey[j].Name, `\w+`)
+				idL := strings.Count(z.RegexpKey[j].Name, `\.`)
+				jwL := strings.Count(z.RegexpKey[j+1].Name, `\w+`)
+				jdL := strings.Count(z.RegexpKey[j+1].Name, `\.`)
+				iL := iwL + idL*2 + (idL+1-iwL)*3
+				jL := jwL + jdL*2 + (jdL+1-jwL)*3
+				if iL < jL { //sort
+					z.RegexpKey[j], z.RegexpKey[j+1] = z.RegexpKey[j+1], z.RegexpKey[j]
+				}
+
 			}
 		}
 
@@ -149,7 +174,6 @@ func (z *Zone) NsRR() []dns.RR {
 func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	//var answer dns.RR
 	var slab string
-	var tlab string
 	var ok bool
 	var zk ZoneKey
 	record := new(ZoneRecord)
@@ -168,16 +192,13 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 	log.Printf("[DEBUG] z.Name=%s, q.Name=%s, slab=%s, q.Qtype=%d, z.Options=%+v", z.Name, q.Name, slab, q.Qtype, z.Options)
 	zk = ZoneKey{Name: slab, Type: q.Qtype}
 	if record, ok = z.Records[zk]; !ok {
-		for z, r := range z.Regexp {
-			regexp_record := strings.Replace(z.Name, "*", "\\w+", -1)
-			if z.Type == q.Qtype && regexpcache.MustCompile(regexp_record).MatchString(slab) {
-				if len(z.Name) > len(tlab) {
-					log.Printf("[DEBUG] z.L = %s, tlab= %s", z.Name, tlab)
-					tlab = z.Name
-					record = r
-				}
+		for _, zz := range z.RegexpKey {
+			r := z.Regexp[zz]
+			if zz.Type == q.Qtype && regexpcache.MustCompile(zz.Name).MatchString(slab) {
+				record = r
 				ok = true
-				log.Printf("[DEBUG] hit regexp : [%s] %s", slab, regexp_record)
+				log.Printf("[DEBUG] hit regexp : [%s] %s", slab, zz.Name)
+				break
 			}
 		}
 	}

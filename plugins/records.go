@@ -9,15 +9,15 @@ import (
 
 /*
  *
- type & 1  view
+ type & 1  normal
  type & 2  weight
  type & 4  geo
 */
 
 const (
-	VIEW   = 1
-	WEIGHT = 2
-	GEO    = 4
+	NORMAL   = 1
+	WEIGHT   = 2
+	GEO      = 4
 )
 
 var upChooseRecord = -1
