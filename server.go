@@ -228,8 +228,12 @@ func (s *server) decodePackets(worker_id int) {
 			}
 			m, err = zz.FindRecord(req)
 			if err != nil {
-				m.Ns = append(m.Ns, zz.SoaRR())
-				m.SetRcode(req, dns.RcodeNameError)
+				if zz.SoaRR() != nil {
+					m.Ns = append(m.Ns, zz.SoaRR())
+				} else {
+					m.Ns = zz.NsRR()
+				}
+				m.SetRcode(req, dns.RcodeSuccess)
 				log.Printf("[WARN] zone[%s] : %s", zz.Name, err)
 			} else {
 				m.Ns = zz.NsRR()
