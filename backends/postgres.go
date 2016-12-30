@@ -130,6 +130,7 @@ func (b *PostgresBackend) watch() {
 					log.Printf("[INFO] domain config removed : %s", domain)
 					zonemap.Remove(domain)
 					zonecache.Del(domain)
+					b.lastUtime = utime
 					continue
 				}
 				dpb, err := types.DecodeByProtobuff(value)
