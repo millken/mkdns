@@ -1,0 +1,15 @@
+[Unit]
+Description=dns hosting server, base golang gopacket
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/mkdns -c /etc/mkdns.conf
+Restart=always
+User=root
+Group=root
+LimitNOFILE=1024
+LimitFSIZE=infinity
+
+[Install]
+WantedBy=multi-user.target
