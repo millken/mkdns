@@ -159,6 +159,9 @@ func (s *server) decodePackets(worker_id int) {
 			}
 		}
 		req := p.Dns
+		if len(req.Question) == 0 {
+			continue
+		}
 		q := req.Question[0]
 		domain := strings.ToLower(q.Name)
 		zz, err := backends.GetRecords(domain)
