@@ -37,7 +37,7 @@ message Record {
 		}
 		Soa soa = 6;
   	}
-	int32 state = 4; //xor, 1 : normal 2: weight, 4: geo
+	int32 state = 4; //xor, 1 : normal 2: weight, 4: geo, 8: cnip
 	repeated Value value = 5;	
 }
 

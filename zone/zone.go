@@ -215,6 +215,7 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			return
 		}
 		plugin.New(z.Options.EdnsAddr, z.Options.RemoteAddr, rr_header)
+		log.Printf("[DEBUG] record.Value = %+v", record.Value)
 		m.Answer, err = plugin.Filter(record.State, record.Value)
 
 	} else {

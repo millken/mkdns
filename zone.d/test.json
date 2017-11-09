@@ -124,6 +124,34 @@
             ]
         },
         {
+            "name":"cn",
+            "ttl":300,
+            "type":"A",
+            "state":8,
+            "value":[
+                {
+                    "record":[
+                        "1.47.46.2",
+                        "1.2.3.3"
+                    ],
+                    "view": "aa-hb"
+                },
+                {
+                    "record":[
+                        "1.2.3.4",
+                        "1.2.4.5"
+                    ],
+                    "view": "rn-ningxiaip-lt"
+                },
+                {
+                    "record":[
+                        "7.7.7.7"
+                    ],
+                    "view": ""
+                }
+            ]
+        },
+        {
             "name":"geo",
             "ttl":300,
             "type":"A",

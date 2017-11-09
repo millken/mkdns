@@ -16,7 +16,8 @@ type Config struct {
 
 type ServerConf struct {
 	Iface, Driver, Backend string
-	WorkerNum              int `toml:"worker_num"`
+	WorkerNum              int    `toml:"worker_num"`
+	IPDBPath               string `toml:"ip_db_path"`
 	//ReadTimeout  int `toml:"read_timeout"`
 	//WriteTimeout int `toml:"write_timeout"`
 }

@@ -3,7 +3,9 @@ package plugins
 import (
 	"log"
 	"net"
+	"strings"
 
+	"github.com/millken/mkdns/ip"
 	"github.com/millken/mkdns/types"
 )
 
@@ -12,12 +14,14 @@ import (
  type & 1  normal
  type & 2  weight
  type & 4  geo
+ type & 8  cnip
 */
 
 const (
-	NORMAL   = 1
-	WEIGHT   = 2
-	GEO      = 4
+	NORMAL = 1
+	WEIGHT = 2
+	GEO    = 4
+	CNIP   = 8
 )
 
 var upChooseRecord = -1
@@ -39,6 +43,10 @@ func newBaseRecords(addr net.IP, state int32, rv []*types.Record_Value) *BaseRec
 
 func (this *BaseRecords) GetRecords() (rrv []*types.Record_Value) {
 	rrv = this.RecordValue
+	if this.State&CNIP == CNIP {
+		rrv = this.CNipRecord(rrv)
+	}
+
 	if this.State&GEO == GEO {
 		rrv = this.GeoRecord(rrv)
 	}
@@ -58,6 +66,41 @@ func (this *BaseRecords) getMaxWeight(rv []*types.Record_Value) int {
 		}
 	}
 	return maxweight
+}
+
+func (this *BaseRecords) CNipRecord(rv []*types.Record_Value) (rrv []*types.Record_Value) {
+	var defaultRRV, viewRRV []*types.Record_Value
+	hitView := false
+	r, err := ip.FindCN(this.Addr)
+
+	for _, v := range rv {
+		if v.View == "" {
+			defaultRRV = append(defaultRRV, v)
+		} else if err == nil {
+			i := 0
+			n := strings.Count(v.View, "-")
+
+			if r.Area != "" && strings.Contains(v.View, r.Area) {
+				i = i + 1
+			}
+			if r.Region != "" && strings.Contains(v.View, r.Region) {
+				i = i + 1
+			}
+			if r.Isp != "" && strings.Contains(v.View, r.Isp) {
+				i = i + 1
+			}
+			if i != 0 && n == i {
+				hitView = true
+				viewRRV = append(viewRRV, v)
+			}
+		}
+	}
+	if hitView {
+		rrv = viewRRV
+	} else {
+		rrv = defaultRRV
+	}
+	return
 }
 
 func (this *BaseRecords) GeoRecord(rv []*types.Record_Value) (rrv []*types.Record_Value) {
