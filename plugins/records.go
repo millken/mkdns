@@ -69,9 +69,10 @@ func (this *BaseRecords) getMaxWeight(rv []*types.Record_Value) int {
 }
 
 func (this *BaseRecords) CNipRecord(rv []*types.Record_Value) (rrv []*types.Record_Value) {
-	var defaultRRV, viewRRV []*types.Record_Value
+	var defaultRRV, viewRRV, emptyRRV []*types.Record_Value
 	hitView := false
 	r, err := ip.FindCN(this.Addr)
+	vn := 0
 
 	for _, v := range rv {
 		if v.View == "" {
@@ -79,7 +80,9 @@ func (this *BaseRecords) CNipRecord(rv []*types.Record_Value) (rrv []*types.Reco
 		} else if err == nil {
 			i := 0
 			n := strings.Count(v.View, "-")
-
+			if n < vn {
+				continue
+			}
 			if r.Area != "" && strings.Contains(v.View, r.Area) {
 				i = i + 1
 			}
@@ -89,9 +92,15 @@ func (this *BaseRecords) CNipRecord(rv []*types.Record_Value) (rrv []*types.Reco
 			if r.Isp != "" && strings.Contains(v.View, r.Isp) {
 				i = i + 1
 			}
+			//log.Printf("[DEBUG] %s %+v ,l=%d,i=%d,n=%d", v.View, r, len(r.Area), i, n)
 			if i != 0 && n == i {
 				hitView = true
-				viewRRV = append(viewRRV, v)
+				if n > vn {
+					viewRRV = append(emptyRRV, v)
+				} else {
+					viewRRV = append(viewRRV, v)
+				}
+				vn = n
 			}
 		}
 	}
