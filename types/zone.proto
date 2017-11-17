@@ -18,6 +18,7 @@ message Record {
 		PTR = 9;
 		SPF = 10;
 		ALIAS = 11;
+		CAA = 12;
 	}
 	string type = 3;
 	message Value {

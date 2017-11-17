@@ -202,6 +202,11 @@ func (z *Zone) FindRecord(req *dns.Msg) (m *dns.Msg, err error) {
 			}
 		}
 	}
+	//fix CAA
+	if !ok && q.Qtype == dns.TypeCAA && slab != "@" {
+		zk = ZoneKey{Name: "@", Type: q.Qtype}
+		record, ok = z.Records[zk]
+	}
 	if ok {
 		rr_header := dns.RR_Header{
 			Name:   q.Name,

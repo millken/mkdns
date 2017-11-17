@@ -32,7 +32,7 @@ func (this *RecordMXPlugin) Filter(state int32, rv []*types.Record_Value) (answe
 	for _, r := range rv {
 
 		for _, v := range r.Record {
-			vv := strings.SplitN(v, " ", 2)
+			vv := strings.Fields(v)
 			if len(vv) != 2 {
 				log.Printf("[ERROR] MX record format incorrect: %s", v)
 				continue

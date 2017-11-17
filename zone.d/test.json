@@ -74,6 +74,32 @@
             ]
         },
         {
+            "name":"@",
+            "ttl":300,
+            "type":"CAA",
+            "value":[
+                {
+                    "record":[
+                        "0 issue symantec.com."
+                    ]
+                }
+            ]
+        },
+        {
+            "name":"caa",
+            "ttl":300,
+            "type":"CAA",
+            "value":[
+                {
+                    "record":[
+                        "0 issue symantec2.com.",
+						"0 issuewild symantec3.com.",
+						"0 iodef mailto:example@example.com"
+                    ]
+                }
+            ]
+        },
+        {
             "name":"view",
             "ttl":300,
             "type":"A",
