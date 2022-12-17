@@ -27,3 +27,5 @@ http://www.devdungeon.com/content/packet-capture-injection-and-analysis-gopacket
 https://github.com/grahamking/latency/blob/master/tcp.go
 https://github.com/portal-rs/portal-go/blob/main/pkg/server/server.go
 https://github.com/miekg/dnsv2/blob/main/rr.go
+https://github.com/cody0704/xdp-examples/tree/master/examples/xdp-udp
+https://gitlab.nic.cz/knot
