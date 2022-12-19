@@ -1,8 +1,8 @@
 package layers
 
 import (
+	"encoding/binary"
 	"net"
-	"unsafe"
 )
 
 const (
@@ -69,11 +69,11 @@ func (p *IPv4) SetVersion(i uint8) {
 }
 
 func (p *IPv4) GetIHL() uint8 {
-	return ((*p)[0] << 4 >> 4) * 4
+	return uint8((*p)[0]) & 0x0f
 }
 
 func (p *IPv4) SetIHL(i uint8) {
-	(*p)[0] |= (i / 4) << 4 >> 4
+	(*p)[0] |= i
 }
 
 func (p *IPv4) GetTOS() uint8 {
@@ -84,32 +84,34 @@ func (p *IPv4) SetTOS(i uint8) {
 	(*p)[1] = i
 }
 
-func (p *IPv4) GetTotalLen() uint16 {
-	return *(*uint16)(unsafe.Pointer(&(*p)[2]))
+func (p *IPv4) GetLength() uint16 {
+	return binary.BigEndian.Uint16((*p)[2:4])
 }
 
-func (p *IPv4) SetTotalLen(i uint16) {
-	(*p)[2] = (*(*[2]byte)(unsafe.Pointer(&i)))[0]
-	(*p)[3] = (*(*[2]byte)(unsafe.Pointer(&i)))[1]
+func (p *IPv4) SetLength(i uint16) {
+	binary.BigEndian.PutUint16((*p)[2:4], i)
 }
 
 func (p *IPv4) GetID() uint16 {
-	return *(*uint16)(unsafe.Pointer(&(*p)[4]))
+	return binary.BigEndian.Uint16((*p)[4:6])
 }
 
 func (p *IPv4) SetID(i uint16) {
-	(*p)[4] = (*(*[2]byte)(unsafe.Pointer(&i)))[0]
-	(*p)[5] = (*(*[2]byte)(unsafe.Pointer(&i)))[1]
+	binary.BigEndian.PutUint16((*p)[4:6], i)
 }
 
 func (p *IPv4) GetFragOff() uint16 {
-	t := (*p)[6:8]
-	return (*(*uint16)(unsafe.Pointer(&t[0]))) << 3 >> 3
+	return binary.BigEndian.Uint16((*p)[6:8]) & 0x1fff
 }
 
-func (p *IPv4) SetFragOff(i uint16) {
-	(*p)[6] |= (*(*[2]byte)(unsafe.Pointer(&i)))[0] << 3 >> 3
-	(*p)[7] = (*(*[2]byte)(unsafe.Pointer(&i)))[1]
+func (p *IPv4) flagsfrags() (ff uint16) {
+	ff |= uint16(p.GetFlags()) << 13
+	ff |= p.GetFragOff()
+	return
+}
+
+func (p *IPv4) SetFragOff() {
+	binary.BigEndian.PutUint16((*p)[6:8], p.flagsfrags())
 }
 
 func (p *IPv4) GetTTL() uint8 {
@@ -129,12 +131,11 @@ func (p *IPv4) SetProtocol(i uint8) {
 }
 
 func (p *IPv4) GetChecksum() uint16 {
-	return *(*uint16)(unsafe.Pointer(&(*p)[10]))
+	return binary.BigEndian.Uint16((*p)[10:12])
 }
 
-func (p *IPv4) SetChecksum(i uint16) {
-	(*p)[10] = (*(*[2]byte)(unsafe.Pointer(&i)))[0]
-	(*p)[11] = (*(*[2]byte)(unsafe.Pointer(&i)))[1]
+func (p *IPv4) SetChecksum() {
+	binary.BigEndian.PutUint16((*p)[10:12], checksum((*p)[:]))
 }
 
 func (p *IPv4) GetSrcAddr() net.IP {
@@ -183,4 +184,8 @@ func (p *IPv4) SetFlagMoreFrag(b bool) {
 	if b {
 		(*p)[6] |= 32
 	}
+}
+
+func (p *IPv4) GetFlags() uint8 {
+	return (*p)[6] >> 5
 }

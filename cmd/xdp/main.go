@@ -17,23 +17,23 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/asavie/xdp"
-	"github.com/asavie/xdp/examples/dumpframes/ebpf"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
+	"github.com/millken/mkdns/internal/ebpf"
+	"github.com/millken/mkdns/internal/xdp"
+	"github.com/pkg/errors"
 )
 
 func main() {
 	var linkName string
 	var queueID int
-	var protocol int64
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
 	flag.StringVar(&linkName, "linkname", "enp3s0", "The network link on which rebroadcast should run on.")
 	flag.IntVar(&queueID, "queueid", 0, "The ID of the Rx queue to which to attach to on the network link.")
-	flag.Int64Var(&protocol, "ip-proto", 0, "If greater than 0 and less than or equal to 255, limit xdp bpf_redirect_map to packets with the specified IP protocol number.")
 	flag.Parse()
 
 	interfaces, err := net.Interfaces()
@@ -57,11 +57,11 @@ func main() {
 	var program *xdp.Program
 
 	// Create a new XDP eBPF program and attach it to our chosen network link.
-	if protocol == 0 {
-		program, err = xdp.NewProgram(queueID + 1)
-	} else {
-		program, err = ebpf.NewIPProtoProgram(uint32(protocol), nil)
-	}
+
+	//program, err = xdp.NewProgram(queueID + 1)
+
+	program, err = ebpf.NewDNSProtoProgram(nil)
+
 	if err != nil {
 		fmt.Printf("error: failed to create xdp program: %v\n", err)
 		return
@@ -71,13 +71,29 @@ func main() {
 		fmt.Printf("error: failed to attach xdp program to interface: %v\n", err)
 		return
 	}
-	defer program.Detach(Ifindex)
-
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGINT)
+	go func() {
+		<-sc
+		err := program.Detach(Ifindex)
+		if err != nil {
+			panic(errors.Wrap(err, "detach failed"))
+		}
+		os.Exit(0)
+	}()
 	// Create and initialize an XDP socket attached to our chosen network
 	// link.
 	xsk, err := xdp.NewSocket(Ifindex, queueID, nil)
 	if err != nil {
 		fmt.Printf("error: failed to create an XDP socket: %v\n", err)
+		return
+	}
+
+	if err := program.SetOption(queueID, &xdp.KnotXdpOpts{
+		Flags:   uint16(xdp.KNOT_XDP_FILTER_TCP) | uint16(xdp.KNOT_XDP_FILTER_UDP) | uint16(xdp.KNOT_XDP_FILTER_ON),
+		UdpPort: 53,
+	}); err != nil {
+		fmt.Printf("error: failed to set filter: %v\n", err)
 		return
 	}
 
@@ -95,7 +111,7 @@ func main() {
 			// descriptors and push them onto the Fill ring queue
 			// for the kernel to fill them with the received
 			// frames.
-			xsk.Fill(xsk.GetDescs(n))
+			xsk.Fill(xsk.GetDescs(n, false))
 		}
 
 		// Wait for receive - meaning the kernel has
@@ -108,19 +124,18 @@ func main() {
 			return
 		}
 
-		if numRx > 0 {
-			// Consume the descriptors filled with received frames
-			// from the Rx ring queue.
-			rxDescs := xsk.Receive(numRx)
+		// Consume the descriptors filled with received frames
+		// from the Rx ring queue.
+		rxDescs := xsk.Receive(numRx)
 
-			// Print the received frames and also modify them
-			// in-place replacing the destination MAC address with
-			// broadcast address.
-			for i := 0; i < len(rxDescs); i++ {
-				pktData := xsk.GetFrame(rxDescs[i])
-				pkt := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
-				log.Printf("received frame:\n%s%+v", hex.Dump(pktData[:]), pkt)
-			}
+		// Print the received frames and also modify them
+		// in-place replacing the destination MAC address with
+		// broadcast address.
+		for i := 0; i < len(rxDescs); i++ {
+			pktData := xsk.GetFrame(rxDescs[i])
+			//pkt := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
+			log.Printf("received frame:\n%s", hex.Dump(pktData[:]))
 		}
+
 	}
 }

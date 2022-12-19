@@ -1,8 +1,8 @@
 package layers
 
 import (
+	"encoding/binary"
 	"net"
-	"unsafe"
 )
 
 const (
@@ -44,7 +44,7 @@ func (e *Ethernet) GetDstAddress() net.HardwareAddr {
 }
 
 func (e *Ethernet) GetEthernetType() uint16 {
-	return *(*uint16)(unsafe.Pointer(&(*e)[12]))
+	return binary.BigEndian.Uint16((*e)[12:14])
 }
 
 func (e *Ethernet) SetSrcAddress(addr net.HardwareAddr) {
@@ -56,6 +56,5 @@ func (e *Ethernet) SetDstAddress(addr net.HardwareAddr) {
 }
 
 func (e *Ethernet) SetEthernetType(typ uint16) {
-	(*e)[12] = (*(*[2]byte)(unsafe.Pointer(&typ)))[0]
-	(*e)[13] = (*(*[2]byte)(unsafe.Pointer(&typ)))[1]
+	binary.BigEndian.PutUint16((*e)[12:14], typ)
 }

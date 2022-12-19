@@ -7,7 +7,8 @@ sudo ethtool -K eth0 gso off
 sudo ethtool -K eth0 tso off
 sudo ethtool -K eth0 gro off
 ```
-
+sudo ip link set dev $eth xdp off
+sudo ip link set dev $eth xdp obj ./bpf-kernel.o
 using tcp
 ```
 iptables -I OUTPUT -p tcp --sport 53 --tcp-flags ALL RST -j DROP

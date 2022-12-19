@@ -23,6 +23,29 @@ func TCPIPChecksum(data []byte, baseCSum uint32) uint16 {
 	return ^uint16(baseCSum)
 }
 
+func checksum(bytes []byte) uint16 {
+	// Clear checksum bytes
+	bytes[10] = 0
+	bytes[11] = 0
+
+	// Compute checksum
+	var csum uint32
+	for i := 0; i < len(bytes); i += 2 {
+		csum += uint32(bytes[i]) << 8
+		csum += uint32(bytes[i+1])
+	}
+	for {
+		// Break when sum is less or equals to 0xFFFF
+		if csum <= 65535 {
+			break
+		}
+		// Add carry to the sum
+		csum = (csum >> 16) + uint32(uint16(csum))
+	}
+	// Flip all the bits
+	return ^uint16(csum)
+}
+
 func IsBigEndian() bool {
 	var i uint16 = 0x0001
 	return (*[2]byte)(unsafe.Pointer(&i))[0] == 0x00
