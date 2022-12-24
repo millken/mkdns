@@ -6,12 +6,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/millken/mkdns/dns"
+	"github.com/millken/mkdns/internal/wire"
 )
 
 type Key struct {
 	Suffix string
-	Type   dns.Type
+	Type   wire.Type
 }
 
 type KeyList []Key
@@ -37,11 +37,11 @@ type Options struct {
 
 type Zone struct {
 	name    string
-	mapG    map[Key]*dns.Record
-	mapW    map[Key]*dns.Record
+	mapG    map[Key]*wire.Record
+	mapW    map[Key]*wire.Record
 	keylist KeyList
-	soa     *dns.SOA // cached soa
-	ns      []net.NS // cached ns
+	soa     *wire.SOA // cached soa
+	ns      []net.NS  // cached ns
 	rw      sync.RWMutex
 	opt     Options
 }
@@ -49,19 +49,19 @@ type Zone struct {
 func New(name string) *Zone {
 	z := new(Zone)
 	z.name = name
-	z.mapG = make(map[Key]*dns.Record)
-	z.mapW = make(map[Key]*dns.Record)
+	z.mapG = make(map[Key]*wire.Record)
+	z.mapW = make(map[Key]*wire.Record)
 	z.opt.EdnsAddr = nil
 	z.opt.RemoteAddr = nil
 	return z
 }
 
-func (z *Zone) Add(suffix string, record *dns.Record) {
+func (z *Zone) Add(suffix string, record *wire.Record) {
 	z.rw.Lock()
 	defer z.rw.Unlock()
 	z.add(Key{suffix, record.Type}, record)
 }
-func (z *Zone) add(zkey Key, record *dns.Record) {
+func (z *Zone) add(zkey Key, record *wire.Record) {
 	if strings.IndexByte(zkey.Suffix, '*') >= 0 {
 		z.mapW[zkey] = record
 		z.keylist = append(z.keylist, zkey)
@@ -71,13 +71,13 @@ func (z *Zone) add(zkey Key, record *dns.Record) {
 	}
 }
 
-func (z *Zone) Lookup(key Key) (record *dns.Record, found bool) {
+func (z *Zone) Lookup(key Key) (record *wire.Record, found bool) {
 	z.rw.RLock()
 	defer z.rw.RUnlock()
 	return z.lookup(key)
 }
 
-func (z *Zone) lookup(key Key) (record *dns.Record, found bool) {
+func (z *Zone) lookup(key Key) (record *wire.Record, found bool) {
 	record, found = z.mapG[key]
 	if found {
 		return
