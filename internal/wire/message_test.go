@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"reflect"
 	"testing"
+
+	"github.com/miekg/dns"
 )
 
 func TestParseMessageOK(t *testing.T) {
@@ -133,7 +135,7 @@ func TestSetQuestion(t *testing.T) {
 	req := AcquireMessage()
 	defer ReleaseMessage(req)
 
-	req.SetRequestQustion("mail.google.com", TypeA, ClassINET)
+	req.SetRequestQuestion("mail.google.com", TypeA, ClassINET)
 
 	if req.Header.ID == 0 {
 		t.Errorf("req.Header.ID should not empty after SetQuestion")
@@ -208,7 +210,7 @@ func BenchmarkSetQuestion(b *testing.B) {
 	defer ReleaseMessage(req)
 
 	for i := 0; i < b.N; i++ {
-		req.SetRequestQustion("mail.google.com", TypeA, ClassINET)
+		req.SetRequestQuestion("mail.google.com", TypeA, ClassINET)
 	}
 }
 
@@ -216,10 +218,20 @@ func BenchmarkSetResponseHeader(b *testing.B) {
 	req := AcquireMessage()
 	defer ReleaseMessage(req)
 
-	req.SetRequestQustion("mail.google.com", TypeA, ClassINET)
+	req.SetRequestQuestion("mail.google.com", TypeA, ClassINET)
 
 	for i := 0; i < b.N; i++ {
 		req.SetResponseHeader(RcodeNoError, 4)
+	}
+}
+
+func BenchmarkMiekgDnsSetResponseHeader(b *testing.B) {
+	msg := new(dns.Msg)
+
+	for i := 0; i < b.N; i++ {
+		msg.SetRcode(msg, dns.RcodeSuccess)
+		msg.Answer = make([]dns.RR, 4)
+		msg.SetReply(msg)
 	}
 }
 

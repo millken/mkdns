@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/millken/mkdns/dns"
 )
 
 var (
@@ -38,7 +40,7 @@ type Client struct {
 
 // Exchange executes a single DNS transaction, returning
 // a Response for the provided Request.
-func (c *Client) Exchange(req, resp *Message) (err error) {
+func (c *Client) Exchange(req *dns.Request, resp *Message) (err error) {
 	err = c.exchange(req, resp)
 	if err != nil && os.IsTimeout(err) {
 		err = c.exchange(req, resp)
@@ -46,7 +48,7 @@ func (c *Client) Exchange(req, resp *Message) (err error) {
 	return err
 }
 
-func (c *Client) exchange(req, resp *Message) error {
+func (c *Client) exchange(req *dns.Request, resp *Message) error {
 	var fresh bool
 	conn, err := c.get()
 	if conn == nil && err == nil {

@@ -1,0 +1,1 @@
+dig @1.1.1.1 t3n.de AAAA

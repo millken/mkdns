@@ -1,221 +1,16 @@
-package wire
+package dns
 
-// Rcode denotes a 4bit field that specifies the response
-// code for a query.
-type Rcode byte
-
-// Message Response Codes, see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
-const (
-	RcodeNoError   Rcode = 0  // No Error                          [DNS]
-	RcodeFormErr   Rcode = 1  // Format Error                      [DNS]
-	RcodeServFail  Rcode = 2  // Server Failure                    [DNS]
-	RcodeNXDomain  Rcode = 3  // Non-Existent Domain               [DNS]
-	RcodeNotImp    Rcode = 4  // Not Implemented                   [DNS]
-	RcodeRefused   Rcode = 5  // Query Refused                     [DNS]
-	RcodeYXDomain  Rcode = 6  // Name Exists when it should not    [DNS Update]
-	RcodeYXRRSet   Rcode = 7  // RR Set Exists when it should not  [DNS Update]
-	RcodeNXRRSet   Rcode = 8  // RR Set that should exist does not [DNS Update]
-	RcodeNotAuth   Rcode = 9  // Server Not Authoritative for zone [DNS Update]
-	RcodeNotZone   Rcode = 10 // Name not contained in zone        [DNS Update/TSIG]
-	RcodeBADSIG    Rcode = 16 // TSIG Signature Failure            [TSIG]
-	RcodeBADVERS   Rcode = 16 // Bad OPT Version                   [EDNS0]
-	RcodeBADKEY    Rcode = 17 // Key not recognized                [TSIG]
-	RcodeBADTIME   Rcode = 18 // Signature out of time window      [TSIG]
-	RcodeBADMODE   Rcode = 19 // Bad TKEY Mode                     [TKEY]
-	RcodeBADNAME   Rcode = 20 // Duplicate key name                [TKEY]
-	RcodeBADALG    Rcode = 21 // Algorithm not supported           [TKEY]
-	RcodeBADTRUNC  Rcode = 22 // Bad Truncation                    [TSIG]
-	RcodeBADCOOKIE Rcode = 23 // Bad/missing Server Cookie         [DNS Cookies]
+type (
+	// Type is a DNS type.
+	Type uint16
+	// Class is a DNS class.
+	Class uint16
 )
-
-func (c Rcode) String() string {
-	switch c {
-	case RcodeNoError:
-		return "NoError"
-	case RcodeFormErr:
-		return "FormErr"
-	case RcodeServFail:
-		return "ServFail"
-	case RcodeNXDomain:
-		return "NXDomain"
-	case RcodeNotImp:
-		return "NotImp"
-	case RcodeRefused:
-		return "Refused"
-	case RcodeYXDomain:
-		return "YXDomain"
-	case RcodeYXRRSet:
-		return "YXRRSet"
-	case RcodeNXRRSet:
-		return "NXRRSet"
-	case RcodeNotAuth:
-		return "NotAuth"
-	case RcodeNotZone:
-		return "NotZone"
-	case RcodeBADSIG: // RcodeBADVERS
-		return "BadSig/BadVers"
-	case RcodeBADKEY:
-		return "BadKey"
-	case RcodeBADTIME:
-		return "BadTime"
-	case RcodeBADMODE:
-		return "BadMode"
-	case RcodeBADNAME:
-		return "BadName"
-	case RcodeBADALG:
-		return "BadAlg"
-	case RcodeBADTRUNC:
-		return "BadTrunc"
-	case RcodeBADCOOKIE:
-		return "BadCookie"
-	}
-	return ""
-}
-
-// Opcode denotes a 4bit field that specified the query type.
-type Opcode byte
 
 // Wire constants and supported types.
 const (
-	OpcodeQuery  Opcode = 0
-	OpcodeIQuery Opcode = 1
-	OpcodeStatus Opcode = 2
-	OpcodeNotify Opcode = 4
-	OpcodeUpdate Opcode = 5
-)
+	// valid RR_Header.Rrtype and Question.qtype
 
-func (c Opcode) String() string {
-	switch c {
-	case OpcodeQuery:
-		return "Query"
-	case OpcodeIQuery:
-		return "IQuery"
-	case OpcodeStatus:
-		return "Status"
-	case OpcodeNotify:
-		return "Notify"
-	case OpcodeUpdate:
-		return "Update"
-	}
-	return ""
-}
-
-// Flags is an arbitrary 16bit represents QR, Opcode, AA, TC, RD, RA, Z and RCODE.
-//
-//   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
-// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-// |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
-// +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-/*DNS 协议中的 Flags 字段是一个 16 位的字段，包含了多个不同的标志位，用于控制 DNS 消息的行为。以下是各个标志位的含义：
-
-1. QR（Query/Response）：这是 Flags 字段的最高位，用于区分查询（0）和响应（1）。
-
-2. Opcode：这是 Flags 字段的第 2 到第 5 位，用于指定操作类型。常见的操作类型有标准查询（0）、反向查询（1）和状态查询（2）。
-
-3. AA（Authoritative Answer）：这是 Flags 字段的第 6 位，如果设置为 1，表示响应是由权威服务器给出的。
-
-4. TC（Truncation）：这是 Flags 字段的第 7 位，如果设置为 1，表示响应已经被截断，可能需要客户端使用 TCP 重新查询。
-
-5. RD（Recursion Desired）：这是 Flags 字段的第 8 位，如果设置为 1，表示客户端希望服务器进行递归查询。
-
-6. RA（Recursion Available）：这是 Flags 字段的第 9 位，如果设置为 1，表示服务器支持递归查询。
-
-7. Z：这是 Flags 字段的第 10 到第 12 位，保留为未来使用，目前应设置为 0。
-
-8. RCODE（Response Code）：这是 Flags 字段的最低 4 位，用于指定响应的状态。常见的状态有无错误（0）、格式错误（1）、服务器失败（2）、名字错误（3）等。
-
-在你给出的代码中，`msg.Header.Flags &= 0b0111111111110000` 是将 Flags 字段的 RD 位清零，`msg.Header.Flags |= 0b0000000100000000` 是将 Flags 字段的 RD 位设置为 1，表示希望服务器进行递归查询。
-*/
-type Flags uint16
-
-type FlagQR byte
-
-const (
-	FlagQRQuery    FlagQR = 0
-	FlagQRResponse FlagQR = 1
-)
-
-// SetQR is QR bit in Flags
-func (f *Flags) SetQR(b FlagQR) {
-	*f = (*f & 0b0111111111111111) | Flags(b)<<15
-}
-
-// QR is QR bit in Flags
-func (f Flags) QR() byte {
-	return byte(f >> 15)
-}
-
-// Opcode is Opcode in Flags
-func (f Flags) Opcode() Opcode {
-	return Opcode((f & 0b0111111111111111) >> 11)
-}
-
-// AA is AA bit in Flags
-func (f Flags) AA() byte {
-	return byte((f & 0b0000010000000000) >> 10)
-}
-
-// TC is TC bit in Flags
-func (f Flags) TC() byte {
-	return byte((f & 0b0000001000000000) >> 9)
-}
-
-// RD is RD bit in Flags
-func (f Flags) RD() byte {
-	return byte((f & 0b0000000100000000) >> 8)
-}
-
-// RA is RA bit in Flags
-func (f Flags) RA() byte {
-	return byte((f & 0b0000000010000000) >> 7)
-}
-
-// Z is Z bits in Flags
-func (f Flags) Z() byte {
-	return byte((f & 0b0000000001110000) >> 4)
-}
-
-// Rcode is Rcode in Flags
-func (f Flags) Rcode() Rcode {
-	return Rcode((f & 0b0000000000001111))
-}
-
-// Class is a DNS class.
-type Class uint16
-
-// Wire constants and supported types.
-const (
-	ClassINET   Class = 1
-	ClassCSNET  Class = 2
-	ClassCHAOS  Class = 3
-	ClassHESIOD Class = 4
-	ClassNONE   Class = 254
-	ClassANY    Class = 255
-)
-
-func (c Class) String() string {
-	switch c {
-	case ClassINET:
-		return "IN"
-	case ClassCSNET:
-		return "CS"
-	case ClassCHAOS:
-		return "CH"
-	case ClassHESIOD:
-		return "HS"
-	case ClassNONE:
-		return "NONE"
-	case ClassANY:
-		return "ANY"
-	}
-	return ""
-}
-
-// Type is a DNS type.
-type Type uint16
-
-// Wire constants and supported types.
-const (
 	TypeNone       Type = 0
 	TypeA          Type = 1
 	TypeNS         Type = 2
@@ -257,6 +52,7 @@ const (
 	TypeAPL        Type = 42
 	TypeDS         Type = 43
 	TypeSSHFP      Type = 44
+	TypeIPSECKEY   Type = 45
 	TypeRRSIG      Type = 46
 	TypeNSEC       Type = 47
 	TypeDNSKEY     Type = 48
@@ -290,17 +86,134 @@ const (
 	TypeURI        Type = 256
 	TypeCAA        Type = 257
 	TypeAVC        Type = 258
-	TypeTKEY       Type = 249
-	TypeTSIG       Type = 250
-	TypeIXFR       Type = 251
-	TypeAXFR       Type = 252
-	TypeMAILB      Type = 253
-	TypeMAILA      Type = 254
-	TypeANY        Type = 255
-	TypeTA         Type = 32768
-	TypeDLV        Type = 32769
-	TypeReserved   Type = 65535
+	TypeAMTRELAY   Type = 260
+
+	TypeTKEY Type = 249
+	TypeTSIG Type = 250
+
+	// valid Question.Qtype only
+	TypeIXFR  Type = 251
+	TypeAXFR  Type = 252
+	TypeMAILB Type = 253
+	TypeMAILA Type = 254
+	TypeANY   Type = 255
+
+	TypeTA       Type = 32768
+	TypeDLV      Type = 32769
+	TypeReserved Type = 65535
+
+	// valid Question.Qclass
+	ClassINET   Class = 1
+	ClassCSNET  Class = 2
+	ClassCHAOS  Class = 3
+	ClassHESIOD Class = 4
+	ClassNONE   Class = 254
+	ClassANY    Class = 255
 )
+
+// ClassToString is a maps Classes to strings for each CLASS wire type.
+var ClassToString = map[Class]string{
+	ClassINET:   "IN",
+	ClassCSNET:  "CS",
+	ClassCHAOS:  "CH",
+	ClassHESIOD: "HS",
+	ClassNONE:   "NONE",
+	ClassANY:    "ANY",
+}
+
+func (c Class) String() string {
+	if s, ok := ClassToString[c]; ok {
+		return s
+	}
+	return "UNKNOWN"
+}
+
+// Opcode denotes a 4bit field that specified the query type.
+type Opcode byte
+
+// Wire constants and supported types.
+const (
+	OpcodeQuery  Opcode = 0
+	OpcodeIQuery Opcode = 1
+	OpcodeStatus Opcode = 2
+	OpcodeNotify Opcode = 4
+	OpcodeUpdate Opcode = 5
+)
+
+func (c Opcode) String() string {
+	switch c {
+	case OpcodeQuery:
+		return "Query"
+	case OpcodeIQuery:
+		return "IQuery"
+	case OpcodeStatus:
+		return "Status"
+	case OpcodeNotify:
+		return "Notify"
+	case OpcodeUpdate:
+		return "Update"
+	}
+	return ""
+}
+
+// OpcodeToString maps Opcodes to strings.
+var OpcodeToString = map[Opcode]string{
+	OpcodeQuery:  "QUERY",
+	OpcodeIQuery: "IQUERY",
+	OpcodeStatus: "STATUS",
+	OpcodeNotify: "NOTIFY",
+	OpcodeUpdate: "UPDATE",
+}
+
+type Rcode uint16
+
+const (
+	// Message Response Codes, see https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
+	RcodeSuccess        Rcode = 0  // NoError   - No Error                          [DNS]
+	RcodeFormatError    Rcode = 1  // FormErr   - Format Error                      [DNS]
+	RcodeServerFailure  Rcode = 2  // ServFail  - Server Failure                    [DNS]
+	RcodeNameError      Rcode = 3  // NXDomain  - Non-Existent Domain               [DNS]
+	RcodeNotImplemented Rcode = 4  // NotImp    - Not Implemented                   [DNS]
+	RcodeRefused        Rcode = 5  // Refused   - Query Refused                     [DNS]
+	RcodeYXDomain       Rcode = 6  // YXDomain  - Name Exists when it should not    [DNS Update]
+	RcodeYXRrset        Rcode = 7  // YXRRSet   - RR Set Exists when it should not  [DNS Update]
+	RcodeNXRrset        Rcode = 8  // NXRRSet   - RR Set that should exist does not [DNS Update]
+	RcodeNotAuth        Rcode = 9  // NotAuth   - Server Not Authoritative for zone [DNS Update]
+	RcodeNotZone        Rcode = 10 // NotZone   - Name not contained in zone        [DNS Update/TSIG]
+	RcodeBadSig         Rcode = 16 // BADSIG    - TSIG Signature Failure            [TSIG]  https://www.rfc-editor.org/rfc/rfc6895.html#section-2.3
+	RcodeBadVers        Rcode = 16 // BADVERS   - Bad OPT Version                   [EDNS0] https://www.rfc-editor.org/rfc/rfc6895.html#section-2.3
+	RcodeBadKey         Rcode = 17 // BADKEY    - Key not recognized                [TSIG]
+	RcodeBadTime        Rcode = 18 // BADTIME   - Signature out of time window      [TSIG]
+	RcodeBadMode        Rcode = 19 // BADMODE   - Bad TKEY Mode                     [TKEY]
+	RcodeBadName        Rcode = 20 // BADNAME   - Duplicate key name                [TKEY]
+	RcodeBadAlg         Rcode = 21 // BADALG    - Algorithm not supported           [TKEY]
+	RcodeBadTrunc       Rcode = 22 // BADTRUNC  - Bad Truncation                    [TSIG]
+	RcodeBadCookie      Rcode = 23 // BADCOOKIE - Bad/missing Server Cookie         [DNS Cookies]
+)
+
+// RcodeToString maps Rcodes to strings.
+var RcodeToString = map[Rcode]string{
+	RcodeSuccess:        "NOERROR",
+	RcodeFormatError:    "FORMERR",
+	RcodeServerFailure:  "SERVFAIL",
+	RcodeNameError:      "NXDOMAIN",
+	RcodeNotImplemented: "NOTIMP",
+	RcodeRefused:        "REFUSED",
+	RcodeYXDomain:       "YXDOMAIN", // See RFC 2136
+	RcodeYXRrset:        "YXRRSET",
+	RcodeNXRrset:        "NXRRSET",
+	RcodeNotAuth:        "NOTAUTH",
+	RcodeNotZone:        "NOTZONE",
+	RcodeBadSig:         "BADSIG", // Also known as RcodeBadVers, see RFC 6891
+	//	RcodeBadVers:        "BADVERS",
+	RcodeBadKey:    "BADKEY",
+	RcodeBadTime:   "BADTIME",
+	RcodeBadMode:   "BADMODE",
+	RcodeBadName:   "BADNAME",
+	RcodeBadAlg:    "BADALG",
+	RcodeBadTrunc:  "BADTRUNC",
+	RcodeBadCookie: "BADCOOKIE",
+}
 
 func (t Type) String() string {
 	switch t {

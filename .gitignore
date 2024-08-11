@@ -24,3 +24,4 @@ _testmain.go
 mkdns
 *.exe
 main
+cmd/dig/dig
