@@ -215,6 +215,13 @@ var RcodeToString = map[Rcode]string{
 	RcodeBadCookie: "BADCOOKIE",
 }
 
+func (r Rcode) String() string {
+	if s, ok := RcodeToString[r]; ok {
+		return s
+	}
+	return "UNKNOWN"
+}
+
 func (t Type) String() string {
 	switch t {
 	case TypeNone:

@@ -27,12 +27,6 @@ func EncodeDomain(dst []byte, domain string) []byte {
 	return dst
 }
 
-// fastrandn returns a pseudorandom uint32 in [0,n).
-//
-//go:noescape
-//go:linkname fastrandn runtime.fastrandn
-func fastrandn(x uint32) uint32
-
 func DecodeDomain(domain []byte) []byte {
 	// Domain
 	i := int(domain[0])

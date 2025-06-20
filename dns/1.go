@@ -26,10 +26,10 @@ type DNSQuestion struct {
 // DNSRecord 表示DNS资源记录
 type DNSRecord struct {
 	Name  []byte
+	Data  []byte
+	TTL   uint32
 	Type  uint16
 	Class uint16
-	TTL   uint32
-	Data  []byte
 }
 
 // 解析DNS消息

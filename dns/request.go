@@ -3,6 +3,7 @@ package dns
 import (
 	"encoding/binary"
 	"errors"
+	"math/rand/v2"
 	"net"
 	"net/netip"
 
@@ -17,11 +18,11 @@ type Name struct {
 }
 
 type Request struct {
+	OPT      OPTRecord
 	Raw      []byte
-	Header   Header
 	Domain   []byte
 	Question Question
-	OPT      OPTRecord
+	Header   Header
 }
 
 var requestPool = gosync.NewPool(func() *Request {
@@ -125,7 +126,7 @@ func (r *Request) SetEDNS0(maxSize uint16, do bool) {
 }
 
 func (r *Request) SetQuestion(domain string, typ Type, class Class) {
-	r.Header.ID = uint16(fastrandn(65536))
+	r.Header.ID = uint16(rand.Uint32N(65536))
 	r.Header.SetRecursionDesired()
 	r.Header.SetAuthenticatedData()
 	r.Header.Qdcount = 1

@@ -40,7 +40,7 @@ type Client struct {
 
 // Exchange executes a single DNS transaction, returning
 // a Response for the provided Request.
-func (c *Client) Exchange(req *dns.Request, resp *Message) (err error) {
+func (c *Client) Exchange(req *dns.Request, resp *dns.Response) (err error) {
 	err = c.exchange(req, resp)
 	if err != nil && os.IsTimeout(err) {
 		err = c.exchange(req, resp)
@@ -48,7 +48,7 @@ func (c *Client) Exchange(req *dns.Request, resp *Message) (err error) {
 	return err
 }
 
-func (c *Client) exchange(req *dns.Request, resp *Message) error {
+func (c *Client) exchange(req *dns.Request, resp *dns.Response) error {
 	var fresh bool
 	conn, err := c.get()
 	if conn == nil && err == nil {
@@ -78,11 +78,31 @@ func (c *Client) exchange(req *dns.Request, resp *Message) error {
 		}
 	}
 
-	resp.Raw = resp.Raw[:cap(resp.Raw)]
-	n, err := conn.Read(resp.Raw)
+	raw := make([]byte, 512) // 512 is the maximum size of a DNS message over UDP
+	n, err := conn.Read(raw)
+	if err != nil {
+		if os.IsTimeout(err) {
+			// if read timeout, close the connection and return timeout error
+			conn.Close()
+			return os.ErrDeadlineExceeded
+		}
+		if fresh {
+			// if error is from a fresh connection, close it and return the error
+			conn.Close()
+		}
+		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			// if error is a timeout, close the connection and return timeout error
+			conn.Close()
+			return os.ErrDeadlineExceeded
+		}
+		// for other errors, close the connection and return the error
+		if !fresh {
+			conn.Close()
+			return err
+		}
+	}
 	if err == nil {
-		resp.Raw = resp.Raw[:n]
-		err = ParseMessage(resp, resp.Raw, false)
+		resp.Unpack(raw[:n])
 	}
 
 	c.put(conn)

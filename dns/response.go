@@ -49,8 +49,8 @@ type RR interface {
 }
 
 type A struct {
-	Hdr RR_Header
 	A   net.IP
+	Hdr RR_Header
 }
 
 func (rr *A) Header() *RR_Header { return &rr.Hdr }
@@ -83,13 +83,13 @@ func (rr *A) Pack() []byte {
 }
 
 type Response struct {
-	// Header is the wire format for the DNS packet header.
-	Header Header
 	Domain []byte
+	Answer []RR
+	Extra  []RR
 	// Question holds the question section of the response message.
 	Question Question
-	Answer   []RR
-	Extra    []RR
+	// Header is the wire format for the DNS packet header.
+	Header Header
 }
 
 var responsePool = gosync.NewPool(func() *Response {

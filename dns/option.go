@@ -77,13 +77,13 @@ const (
 )
 
 type OPTRecord struct {
-	Hdr RR_Header
 	// Name     string
 	// Type     Type
 	// MaxSize  uint16
 	// TTL      uint32
 	// RDLength uint16
 	Options []Option
+	Hdr     RR_Header
 }
 
 func (rr *OPTRecord) Header() *RR_Header { return &rr.Hdr }
@@ -132,9 +132,9 @@ func (r *OPTRecord) AddOption(code OptionCode, data []byte) {
 }
 
 type Option struct {
+	Data   []byte
 	Code   OptionCode
 	Length uint16
-	Data   []byte
 }
 
 func (o *Option) String() string {
