@@ -3,22 +3,11 @@
   "configurations": [
     {
       "name": "C/C++ Runner: Debug Session",
-      "type": "cppdbg",
+      "type": "lldb",
       "request": "launch",
       "args": [],
-      "stopAtEntry": false,
-      "externalConsole": false,
-      "cwd": "/media/millken/code01-data/Codes/github.com/millken/mkdns",
-      "program": "/media/millken/code01-data/Codes/github.com/millken/mkdns/build/Debug/outDebug",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
+      "cwd": "/Users/millken/github.com/millken/mkdns",
+      "program": "/Users/millken/github.com/millken/mkdns/build/Debug/outDebug"
     }
   ]
 }
